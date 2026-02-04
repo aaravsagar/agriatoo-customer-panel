@@ -4,6 +4,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { Product } from '../../types';
 import { PRODUCT_CATEGORIES } from '../../config/constants';
+import { isPincodeValid } from '../../utils/pincodeUtils';
 import { Search, ShoppingCart, Truck, Shield, Users } from 'lucide-react';
 import { useCart } from '../../hooks/useCart';
 import { useStockManager } from '../../hooks/useStockManager';
@@ -14,6 +15,8 @@ const HomePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [pincode, setPincode] = useState('');
+  const [pincodeValidating, setPincodeValidating] = useState(false);
+  const [pincodeValid, setPincodeValid] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
@@ -60,6 +63,8 @@ const HomePage: React.FC = () => {
           name: data.name || '',
           description: data.description || '',
           price: data.price || 0,
+          originalPrice: data.originalPrice,
+          discountedPrice: data.discountedPrice,
           category: data.category || '',
           unit: data.unit || 'unit',
           stock: data.stock || 0,
@@ -101,6 +106,23 @@ const HomePage: React.FC = () => {
       setProducts([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePincodeChange = (newPincode: string) => {
+    setPincode(newPincode);
+    
+    if (newPincode.length === 6) {
+      setPincodeValidating(true);
+      isPincodeValid(newPincode).then(isValid => {
+        setPincodeValidating(false);
+        setPincodeValid(isValid);
+      }).catch(() => {
+        setPincodeValidating(false);
+        setPincodeValid(false);
+      });
+    } else {
+      setPincodeValid(null);
     }
   };
 
@@ -162,9 +184,80 @@ const HomePage: React.FC = () => {
         </div>
       )}
 
-      {/* Hero removed - showing products directly */}
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-green-600 to-green-800 text-white py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+              Welcome to <span className="text-green-300">AGRIATOO</span>
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 text-green-100">
+              Your trusted marketplace for quality agricultural products
+            </p>
+            <div className="flex flex-col md:flex-row gap-4 max-w-md mx-auto">
+              <input
+                type="text"
+                placeholder="Enter your PIN code"
+                value={pincode}
+                onChange={(e) => handlePincodeChange(e.target.value)}
+                maxLength={6}
+                className="flex-1 px-4 py-3 rounded-lg text-gray-900 placeholder-gray-500 relative"
+              />
+              {pincodeValidating && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-green-600 rounded-full animate-spin"></div>
+                </div>
+              )}
+              <button 
+                onClick={fetchProducts}
+                disabled={pincodeValidating || (pincode.length === 6 && !pincodeValid)}
+                className="bg-green-500 hover:bg-green-400 px-6 py-3 rounded-lg font-semibold transition-colors"
+              >
+                Find Products
+              </button>
+            </div>
+            {pincode.length === 6 && pincodeValid === false && (
+              <p className="text-red-300 text-sm mt-2 text-center">
+                Invalid PIN code. Please enter a valid Indian PIN code.
+              </p>
+            )}
+            {pincode.length === 6 && pincodeValid === true && (
+              <p className="text-green-300 text-sm mt-2 text-center">
+                ✓ Valid PIN code
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
 
-      {/* Features moved to bottom */}
+      {/* Features Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Truck className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Fast Delivery</h3>
+              <p className="text-gray-600">Quick delivery to your doorstep across India</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Quality Assured</h3>
+              <p className="text-gray-600">Only genuine products from verified sellers</p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Trusted Network</h3>
+              <p className="text-gray-600">Connect with farmers and sellers nationwide</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Product Search and Filter */}
       <section className="py-8 bg-gray-50 border-b">
@@ -251,7 +344,7 @@ const HomePage: React.FC = () => {
       {/* CTA Section */}
       <section className="bg-green-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Start Shopping?</h2>
+              ? `No products available for PIN code ${pincode}${pincodeValid === false ? ' (Invalid PIN code)' : ''}` 
           <p className="text-xl mb-8 text-green-100">
             Browse our complete catalog and find the best agricultural products
           </p>
@@ -260,37 +353,8 @@ const HomePage: React.FC = () => {
             className="inline-flex items-center bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
           >
             <ShoppingCart className="w-5 h-5 mr-2" />
-            View Cart {totalItems > 0 && `(${totalItems})`}
+            Try searching with a different valid PIN code or category
           </button>
-        </div>
-      </section>
-
-      {/* Features Section (moved below products) */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Truck className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Fast Delivery</h3>
-              <p className="text-gray-600">Quick delivery to your doorstep across India</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Quality Assured</h3>
-              <p className="text-gray-600">Only genuine products from verified sellers</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Trusted Network</h3>
-              <p className="text-gray-600">Connect with farmers and sellers nationwide</p>
-            </div>
-          </div>
         </div>
       </section>
 
