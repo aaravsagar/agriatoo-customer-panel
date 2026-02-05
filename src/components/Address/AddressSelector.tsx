@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { GoogleMap, LoadScript, Marker } from '@react-google-maps-api';
 import { saveUserAddress, getUserAddress, reverseGeocode, Address } from '../../services/addressService';
 import { useAuth } from '../../hooks/useAuth';
-import { MapPin, Navigation, Save, Edit3 } from 'lucide-react';
+import { MapPin, Navigation, Save, CreditCard as Edit3 } from 'lucide-react';
 
 const libraries: ("places")[] = ["places"];
 
