@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
-import { USER_ROLES } from '../config/constants';
+import { ADMIN_CREDENTIALS, USER_ROLES } from '../config/constants';
 import { User } from '../types';
 
 export const useAuth = () => {
@@ -18,6 +18,21 @@ export const useAuth = () => {
           return;
         }
 
+        // ✅ Admin (hardcoded)
+        if (firebaseUser.email === ADMIN_CREDENTIALS.email) {
+          setUser({
+            id: 'admin',
+            email: ADMIN_CREDENTIALS.email,
+            role: USER_ROLES.ADMIN,
+            name: 'Administrator',
+            phone: '+91-9999999999',
+            createdAt: new Date(),
+            isActive: true,
+          });
+          setLoading(false);
+          return;
+        }
+
         // ✅ Fetch Firestore user
         const userRef = doc(db, 'users', firebaseUser.uid);
         const userSnap = await getDoc(userRef);
@@ -27,10 +42,10 @@ export const useAuth = () => {
 
           setUser({
             id: firebaseUser.uid,
-            email: data.email || firebaseUser.email || '',
-            phone: data.phone || '',
+            email: firebaseUser.email || '',
             role: data.role || USER_ROLES.FARMER, // fallback role
             name: data.name || 'User',
+            phone: data.phone || '',
             address: data.address || '',
             pincode: data.pincode || '',
             shopName: data.shopName || '',
@@ -40,9 +55,22 @@ export const useAuth = () => {
             isActive: data.isActive ?? true,
           });
         } else {
-          // User document should be created during OTP verification
-          console.warn('User document not found for authenticated user');
-          setUser(null);
+          // ✅ Auto-create user document instead of logout
+          const newUser: User = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            role: USER_ROLES.FARMER, // default role
+            name: 'New User',
+            phone: '',
+            createdAt: new Date(),
+            isActive: true,
+          };
+
+          await setDoc(userRef, newUser);
+
+          console.warn('User doc not found, created new user:', newUser);
+
+          setUser(newUser);
         }
       } catch (err) {
         console.error('Auth error:', err);

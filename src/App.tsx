@@ -1,55 +1,36 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import Header from './components/Layout/Header';
+import Footer from './components/Layout/Footer';
 import LoadingSpinner from './components/UI/LoadingSpinner';
-import ProtectedRoute from './components/Auth/ProtectedRoute';
-import OTPLogin from './components/Auth/OTPLogin';
-import AddressSelector from './components/Address/AddressSelector';
-import ProductsHome from './components/Customer/ProductsHome';
+import Login from './components/Auth/Login';
+import HomePage from './components/Customer/HomePage';
 import Cart from './components/Customer/Cart';
 import TrackOrders from './components/Customer/TrackOrders';
 
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
-  // If not authenticated, show login
-  if (!user) {
-    return <OTPLogin />;
-  }
-
   return (
-    <Routes>
-      <Route path="/address" element={<AddressSelector />} />
-      <Route 
-        path="/home" 
-        element={
-          <ProtectedRoute requiresAddress={true}>
-            <ProductsHome />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/cart" 
-        element={
-          <ProtectedRoute requiresAddress={true}>
-            <Cart />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/track" 
-        element={
-          <ProtectedRoute requiresAddress={true}>
-            <TrackOrders />
-          </ProtectedRoute>
-        } 
-      />
-      <Route path="*" element={<AddressSelector />} />
-    </Routes>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Header />
+
+      <main className="flex-grow">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/track" element={<TrackOrders />} />
+          <Route path="/login" element={<Login />} />
+        </Routes>
+      </main>
+
+      <Footer />
+    </div>
   );
 }
 

@@ -11,8 +11,6 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {
-    "@react-google-maps/api": "^2.20.8",
-    "axios": "^1.13.4",
     "firebase": "^10.12.2",
     "lucide-react": "^0.344.0",
     "qrcode-generator": "^1.4.4",
