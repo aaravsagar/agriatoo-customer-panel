@@ -18,7 +18,9 @@ const Cart: React.FC = () => {
     name: '',
     phone: '',
     address: '',
-    pincode: ''
+    pincode: '',
+    lat: undefined as number | undefined,
+    lng: undefined as number | undefined
   });
   const [isCheckout, setIsCheckout] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -31,6 +33,19 @@ const Cart: React.FC = () => {
     console.log('🛒 Total Amount:', totalAmount);
     console.log('🛒 Initialized:', isInitialized);
   }, [cartItems, totalAmount, isInitialized]);
+
+  // Load saved customer details from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('agriatoo_customer');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setCustomerDetails(prev => ({ ...prev, ...parsed }));
+      }
+    } catch (err) {
+      console.warn('Failed to load saved customer details', err);
+    }
+  }, []);
 
   const handleQuantityChange = (productId: string, change: number) => {
     const item = cartItems.find(item => item.productId === productId);
@@ -45,7 +60,7 @@ const Cart: React.FC = () => {
     if (!/^[6-9]\d{9}$/.test(customerDetails.phone)) return 'Invalid phone number';
     if (!customerDetails.address.trim()) return 'Address is required';
     if (!customerDetails.pincode.trim()) return 'PIN code is required';
-    // Note: We'll validate pincode asynchronously in handlePlaceOrder
+    if (!isPincodeValid(customerDetails.pincode)) return 'Invalid PIN code';
     
     // Check stock availability for all items
     for (const item of cartItems) {
@@ -79,13 +94,6 @@ const Cart: React.FC = () => {
   };
 
   const handlePlaceOrder = async () => {
-    // First validate the pincode using the API
-    const pincodeIsValid = await isPincodeValid(customerDetails.pincode);
-    if (!pincodeIsValid) {
-      setError('Invalid PIN code. Please enter a valid Indian PIN code.');
-      return;
-    }
-    
     const validationError = validateCheckout();
     if (validationError) {
       setError(validationError);
@@ -116,6 +124,8 @@ const Cart: React.FC = () => {
           customerName: customerDetails.name,
           customerPhone: customerDetails.phone,
           customerAddress: customerDetails.address,
+          customerLat: customerDetails.lat || null,
+          customerLng: customerDetails.lng || null,
           customerPincode: customerDetails.pincode,
           sellerId,
           sellerName: sellerProduct.sellerName,
@@ -139,18 +149,34 @@ const Cart: React.FC = () => {
 
         // Create order and reduce stock atomically
         const orderRef = await addDoc(collection(db, 'orders'), orderData);
-        
+
         // Reduce stock for this order's items
         const stockReduced = await reduceStockForOrder(items, orderId);
         if (!stockReduced) {
           console.warn(`Failed to reduce stock for order ${orderId}`);
         }
-        
-        return orderRef;
+
+        return { orderId, docId: orderRef.id };
       });
 
-      await Promise.all(orderPromises);
-      
+      const created = await Promise.all(orderPromises);
+
+      // Save customer details and created orders to localStorage for tracking
+      try {
+        localStorage.setItem('agriatoo_customer', JSON.stringify(customerDetails));
+
+        const existing = JSON.parse(localStorage.getItem('agriatoo_orders') || '[]');
+        const toSave = created.map(c => ({
+          orderId: c.orderId,
+          docId: c.docId,
+          createdAt: new Date().toISOString(),
+          status: ORDER_STATUSES.RECEIVED
+        }));
+        localStorage.setItem('agriatoo_orders', JSON.stringify([...existing, ...toSave]));
+      } catch (err) {
+        console.warn('Failed to save order/customer info to localStorage', err);
+      }
+
       clearCart();
       alert('Orders placed successfully! You will receive confirmation shortly.');
       navigate('/');
@@ -318,6 +344,47 @@ const Cart: React.FC = () => {
                     onChange={(e) => setCustomerDetails({ ...customerDetails, pincode: e.target.value })}
                     className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
+                  <div className="col-span-1 md:col-span-2 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!navigator.geolocation) {
+                          alert('Geolocation not supported in this browser');
+                          return;
+                        }
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => {
+                            const lat = pos.coords.latitude;
+                            const lng = pos.coords.longitude;
+                            setCustomerDetails({ ...customerDetails, lat, lng });
+                          },
+                          (err) => {
+                            console.warn('Geolocation error', err);
+                            alert('Unable to get current location');
+                          },
+                          { timeout: 10000 }
+                        );
+                      }}
+                      className="bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm"
+                    >
+                      Use my location
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const { lat, lng } = customerDetails;
+                        const q = lat && lng ? `${lat},${lng}` : customerDetails.pincode || '';
+                        const url = `https://www.google.com/maps?q=${encodeURIComponent(q)}`;
+                        window.open(url, '_blank');
+                      }}
+                      className="bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm"
+                    >
+                      Open map
+                    </button>
+                    {customerDetails.lat && customerDetails.lng && (
+                      <div className="text-xs text-gray-500">Lat: {customerDetails.lat.toFixed(5)}, Lng: {customerDetails.lng.toFixed(5)}</div>
+                    )}
+                  </div>
                 </div>
                 <textarea
                   placeholder="Complete Address"
