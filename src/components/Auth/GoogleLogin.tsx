@@ -19,6 +19,18 @@ const GoogleLogin: React.FC = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const validateGujaratPincode = (pincode: string): boolean => {
+    if (!pincode || pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
+      return false;
+    }
+
+    // Gujarat pincodes start with 36, 38, 39
+    const gujaratPrefixes = ['36', '38', '39'];
+    const prefix = pincode.substring(0, 2);
+    
+    return gujaratPrefixes.includes(prefix);
+  };
+
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
@@ -50,23 +62,6 @@ const GoogleLogin: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const validateGujaratPincode = async (pincode: string): Promise<boolean> => {
-    if (!pincode || pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
-      return false;
-    }
-
-    // Gujarat pincodes start with 36, 38, 39
-    const gujaratPrefixes = ['36', '38', '39'];
-    const prefix = pincode.substring(0, 2);
-    
-    if (!gujaratPrefixes.includes(prefix)) {
-      return false;
-    }
-
-    // Validate with API
-    return await isPincodeValid(pincode);
   };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -129,18 +124,6 @@ const GoogleLogin: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const validateGujaratPincode = (pincode: string): boolean => {
-    if (!pincode || pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
-      return false;
-    }
-
-    // Gujarat pincodes start with 36, 38, 39
-    const gujaratPrefixes = ['36', '38', '39'];
-    const prefix = pincode.substring(0, 2);
-    
-    return gujaratPrefixes.includes(prefix);
   };
 
   if (showProfileForm) {
