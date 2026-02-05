@@ -100,7 +100,6 @@ const PINCODE_COORDINATES: { [key: string]: { lat: number; lng: number } } = {
   '365001': { lat: 21.5222, lng: 70.4579 }, // Amreli
   '370465': { lat: 23.0395, lng: 68.7644 }, // Mandvi
   '370020': { lat: 23.0395, lng: 68.7644 }, // Gandhidham
-  '370201': { lat: 23.2420, lng: 69.6669 }, // Anjar
 };
 
 // Fetch pincode data from API
