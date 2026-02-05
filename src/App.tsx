@@ -7,7 +7,6 @@ import Footer from './components/Layout/Footer';
 import LoadingSpinner from './components/UI/LoadingSpinner';
 import HomePage from './components/Customer/HomePage';
 import Cart from './components/Customer/Cart';
-import TrackOrders from './components/Customer/TrackOrders';
 import MyOrders from './components/Customer/MyOrders';
 
 function AppContent() {
@@ -30,7 +29,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/cart" element={<Cart />} />
-          <Route path="/track" element={<TrackOrders />} />
+
           <Route path="/orders" element={<MyOrders />} />
         </Routes>
       </main>

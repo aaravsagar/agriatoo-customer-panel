@@ -52,13 +52,6 @@ const Header: React.FC = () => {
               <Package className="w-6 h-6" />
             </Link>
 
-            <button
-              onClick={() => navigate('/track')}
-              className="p-2 text-gray-600 hover:text-green-600 transition-colors"
-            >
-              Track Order
-            </button>
-
             {user ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2 text-gray-700">
