@@ -1,21 +1,24 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { getUserAddress } from '../../services/addressService';
 import LoadingSpinner from '../UI/LoadingSpinner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'seller' | 'delivery';
+  requiresAddress?: boolean;
   redirectTo?: string;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requiredRole, 
+  requiresAddress = false,
   redirectTo = '/login' 
 }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const [addressLoading, setAddressLoading] = React.useState(false);
+  const [hasAddress, setHasAddress] = React.useState(false);
 
   if (loading) {
     return <LoadingSpinner />;
@@ -25,15 +28,25 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  if (requiredRole && user.role !== requiredRole) {
-    // Redirect to appropriate dashboard based on user role
-    const dashboardRoutes = {
-      admin: '/admin',
-      seller: '/seller',
-      delivery: '/delivery'
-    };
-    const targetRoute = dashboardRoutes[user.role as keyof typeof dashboardRoutes];
-    return <Navigate to={targetRoute || '/'} replace />;
+  // Check if address is required and exists
+  React.useEffect(() => {
+    if (requiresAddress && user) {
+      setAddressLoading(true);
+      getUserAddress(user.id).then(address => {
+        setHasAddress(!!address);
+        setAddressLoading(false);
+      });
+    }
+  }, [requiresAddress, user]);
+
+  if (requiresAddress) {
+    if (addressLoading) {
+      return <LoadingSpinner />;
+    }
+    
+    if (!hasAddress) {
+      return <Navigate to="/address" replace />;
+    }
   }
 
   return <>{children}</>;
