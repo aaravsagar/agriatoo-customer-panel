@@ -2,25 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useStockManager } from '../../hooks/useStockManager';
 import { generateUniqueOrderId, generateOrderQR } from '../../utils/qrUtils';
-import { isPincodeValid } from '../../utils/pincodeUtils';
 import { Plus, Minus, Trash2, ArrowLeft } from 'lucide-react';
 import { ORDER_STATUSES } from '../../config/constants';
+import OrderProgress from './OrderProgress';
+import OrderReceipt from './OrderReceipt';
 
 const Cart: React.FC = () => {
+  const { user } = useAuth();
   const { cartItems, updateQuantity, removeFromCart, clearCart, totalAmount, isInitialized } = useCart();
   const { reduceStockForOrder, isProductInStock } = useStockManager();
   const navigate = useNavigate();
   
-  const [customerDetails, setCustomerDetails] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    pincode: ''
-  });
-  const [isCheckout, setIsCheckout] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
+  const [showReceipt, setShowReceipt] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -40,12 +38,11 @@ const Cart: React.FC = () => {
   };
 
   const validateCheckout = () => {
-    if (!customerDetails.name.trim()) return 'Name is required';
-    if (!customerDetails.phone.trim()) return 'Phone number is required';
-    if (!/^[6-9]\d{9}$/.test(customerDetails.phone)) return 'Invalid phone number';
-    if (!customerDetails.address.trim()) return 'Address is required';
-    if (!customerDetails.pincode.trim()) return 'PIN code is required';
-    // Note: We'll validate pincode asynchronously in handlePlaceOrder
+    if (!user) return 'User not authenticated';
+    if (!user.name?.trim()) return 'Name is required in profile';
+    if (!user.phone?.trim()) return 'Phone number is required in profile';
+    if (!user.address?.trim()) return 'Address is required in profile';
+    if (!user.pincode?.trim()) return 'PIN code is required in profile';
     
     // Check stock availability for all items
     for (const item of cartItems) {
@@ -70,8 +67,8 @@ const Cart: React.FC = () => {
       }
       
       // Check if customer pincode is covered
-      if (!firstProduct.coveredPincodes.includes(customerDetails.pincode)) {
-        return `Delivery not available to PIN code ${customerDetails.pincode} for products from ${firstProduct.sellerName}`;
+      if (!firstProduct.coveredPincodes.includes(user.pincode!)) {
+        return `Delivery not available to PIN code ${user.pincode} for products from ${firstProduct.sellerName}`;
       }
     }
     
@@ -79,23 +76,22 @@ const Cart: React.FC = () => {
   };
 
   const handlePlaceOrder = async () => {
-    // First validate the pincode using the API
-    const pincodeIsValid = await isPincodeValid(customerDetails.pincode);
-    if (!pincodeIsValid) {
-      setError('Invalid PIN code. Please enter a valid Indian PIN code.');
-      return;
-    }
-    
     const validationError = validateCheckout();
     if (validationError) {
       setError(validationError);
       return;
     }
 
-    setLoading(true);
-    setError('');
+    if (!user) return;
 
-    try {
+    setError('');
+    setShowProgress(true);
+
+    // Wait for progress animation to complete
+    setTimeout(async () => {
+      setLoading(true);
+      
+      try {
       // Group items by seller
       const sellerGroups = cartItems.reduce((groups, item) => {
         const sellerId = item.product.sellerId;
@@ -109,14 +105,14 @@ const Cart: React.FC = () => {
       // Create separate orders for each seller and reduce stock
       const orderPromises = Object.entries(sellerGroups).map(async ([sellerId, items]) => {
         const sellerProduct = items[0].product;
-        const orderId = generateUniqueOrderId(customerDetails.pincode);
+        const orderId = generateUniqueOrderId(user.pincode!);
         
         const orderData = {
           orderId,
-          customerName: customerDetails.name,
-          customerPhone: customerDetails.phone,
-          customerAddress: customerDetails.address,
-          customerPincode: customerDetails.pincode,
+          customerName: user.name,
+          customerPhone: user.phone,
+          customerAddress: user.address,
+          customerPincode: user.pincode,
           sellerId,
           sellerName: sellerProduct.sellerName,
           sellerShopName: sellerProduct.sellerName,
@@ -149,18 +145,87 @@ const Cart: React.FC = () => {
         return orderRef;
       });
 
-      await Promise.all(orderPromises);
+      const orderRefs = await Promise.all(orderPromises);
+      
+      // Get the first order for receipt display
+      if (orderRefs.length > 0) {
+        const firstOrderRef = orderRefs[0];
+        const firstOrderData = sellerGroups[Object.keys(sellerGroups)[0]];
+        const orderId = generateUniqueOrderId(user.pincode!);
+        
+        const receiptOrder = {
+          id: firstOrderRef.id,
+          orderId,
+          customerName: user.name,
+          customerPhone: user.phone,
+          customerAddress: user.address,
+          customerPincode: user.pincode,
+          items: firstOrderData.map(item => ({
+            productId: item.productId,
+            productName: item.product.name,
+            price: item.product.price,
+            quantity: item.quantity,
+            unit: item.product.unit
+          })),
+          totalAmount: firstOrderData.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+          status: ORDER_STATUSES.RECEIVED,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        setShowReceipt(receiptOrder);
+      }
       
       clearCart();
-      alert('Orders placed successfully! You will receive confirmation shortly.');
-      navigate('/');
-    } catch (error) {
+      } catch (error) {
       console.error('Error placing orders:', error);
       setError('Failed to place orders. Please try again.');
-    } finally {
+      } finally {
       setLoading(false);
-    }
+        setShowProgress(false);
+      }
+    }, 5000); // 5 second delay for progress animation
   };
+
+  const handleReceiptComplete = () => {
+    setShowReceipt(null);
+    navigate('/track');
+  };
+
+  // Show order progress
+  if (showProgress) {
+    return <OrderProgress onComplete={() => {}} />;
+  }
+
+  // Show receipt
+  if (showReceipt) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-green-600 mb-2">Order Placed Successfully!</h1>
+            <p className="text-gray-600">Your order has been confirmed and is being processed.</p>
+          </div>
+          
+          <OrderReceipt 
+            order={showReceipt} 
+            onDownload={() => {
+              // Auto-download logic is handled in OrderReceipt component
+            }}
+          />
+          
+          <div className="text-center mt-6">
+            <button
+              onClick={handleReceiptComplete}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            >
+              Track Your Order
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Show loading state while cart is initializing
   if (!isInitialized) {
@@ -285,66 +350,35 @@ const Cart: React.FC = () => {
           <div className="border-t border-gray-200 p-6">
             <div className="flex justify-between items-center mb-6">
               <span className="text-xl font-semibold">Total: ₹{totalAmount.toFixed(2)}</span>
-              <button
-                onClick={() => setIsCheckout(!isCheckout)}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
-              >
-                {isCheckout ? 'Hide Checkout' : 'Proceed to Checkout'}
-              </button>
             </div>
 
-            {isCheckout && (
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold mb-4">Customer Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    value={customerDetails.name}
-                    onChange={(e) => setCustomerDetails({ ...customerDetails, name: e.target.value })}
-                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                  <input
-                    type="tel"
-                    placeholder="Phone Number"
-                    value={customerDetails.phone}
-                    onChange={(e) => setCustomerDetails({ ...customerDetails, phone: e.target.value })}
-                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                  <input
-                    type="text"
-                    placeholder="PIN Code"
-                    value={customerDetails.pincode}
-                    onChange={(e) => setCustomerDetails({ ...customerDetails, pincode: e.target.value })}
-                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-                <textarea
-                  placeholder="Complete Address"
-                  value={customerDetails.address}
-                  onChange={(e) => setCustomerDetails({ ...customerDetails, address: e.target.value })}
-                  rows={3}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 mb-4"
-                />
+            {/* Delivery Details */}
+            <div className="border-t pt-6 mb-6">
+              <h3 className="text-lg font-semibold mb-4">Delivery Details</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="font-medium text-gray-900">{user?.name}</p>
+                <p className="text-gray-600">{user?.phone}</p>
+                <p className="text-gray-600">{user?.address}</p>
+                <p className="text-gray-600">PIN: {user?.pincode}</p>
+              </div>
+            </div>
 
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-4">
-                    {error}
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-gray-600">Payment Method: Cash on Delivery</p>
-                  <button
-                    onClick={handlePlaceOrder}
-                    disabled={loading}
-                    className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {loading ? 'Placing Order...' : 'Place Order'}
-                  </button>
-                </div>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-4">
+                {error}
               </div>
             )}
+
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-600">Payment Method: Cash on Delivery</p>
+              <button
+                onClick={handlePlaceOrder}
+                disabled={loading}
+                className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? 'Placing Order...' : 'Place Order'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

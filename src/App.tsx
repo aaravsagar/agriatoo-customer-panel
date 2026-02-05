@@ -1,19 +1,25 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import GoogleLogin from './components/Auth/GoogleLogin';
 import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
 import LoadingSpinner from './components/UI/LoadingSpinner';
-import Login from './components/Auth/Login';
 import HomePage from './components/Customer/HomePage';
 import Cart from './components/Customer/Cart';
 import TrackOrders from './components/Customer/TrackOrders';
+import MyOrders from './components/Customer/MyOrders';
 
 function AppContent() {
-  const { loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <LoadingSpinner />;
+  }
+
+  // Show Google login if user is not authenticated
+  if (!user) {
+    return <GoogleLogin />;
   }
 
   return (
@@ -25,7 +31,7 @@ function AppContent() {
           <Route path="/" element={<HomePage />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/track" element={<TrackOrders />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/orders" element={<MyOrders />} />
         </Routes>
       </main>
 

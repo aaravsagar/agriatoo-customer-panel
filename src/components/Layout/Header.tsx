@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, User, LogOut } from 'lucide-react';
+import { ShoppingCart, User, LogOut, Package } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../config/firebase';
 import { useAuth } from '../../hooks/useAuth';
@@ -17,20 +17,6 @@ const Header: React.FC = () => {
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
-    }
-  };
-
-  const getDashboardLink = () => {
-    if (!user) return '/';
-    switch (user.role) {
-      case 'admin':
-        return '/admin';
-      case 'seller':
-        return '/seller';
-      case 'delivery':
-        return '/delivery';
-      default:
-        return '/';
     }
   };
 
@@ -58,6 +44,14 @@ const Header: React.FC = () => {
               )}
             </Link>
 
+            <Link
+              to="/orders"
+              className="p-2 text-gray-600 hover:text-green-600 transition-colors"
+              title="My Orders"
+            >
+              <Package className="w-6 h-6" />
+            </Link>
+
             <button
               onClick={() => navigate('/track')}
               className="p-2 text-gray-600 hover:text-green-600 transition-colors"
@@ -67,13 +61,10 @@ const Header: React.FC = () => {
 
             {user ? (
               <div className="flex items-center space-x-4">
-                <Link
-                  to={getDashboardLink()}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-green-600"
-                >
+                <div className="flex items-center space-x-2 text-gray-700">
                   <User className="w-5 h-5" />
                   <span className="hidden sm:inline">{user.name}</span>
-                </Link>
+                </div>
                 <button
                   onClick={handleLogout}
                   className="flex items-center space-x-1 text-gray-600 hover:text-red-600 transition-colors"
