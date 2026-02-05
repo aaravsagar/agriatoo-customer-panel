@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithPopup } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../../config/firebase';
+import { auth, googleProvider, db } from '../../config/firebase';
 import { User } from '../../types';
 import { USER_ROLES } from '../../config/constants';
-import { isPincodeValid } from '../../utils/pincodeUtils';
 import { Loader, User as UserIcon, MapPin, Phone, Home } from 'lucide-react';
 
 const GoogleLogin: React.FC = () => {
@@ -25,8 +24,7 @@ const GoogleLogin: React.FC = () => {
     setError('');
 
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
       // Check if user exists in Firestore
@@ -96,7 +94,7 @@ const GoogleLogin: React.FC = () => {
       }
 
       // Validate Gujarat pincode
-      const isValidGujarat = await validateGujaratPincode(profileData.pincode);
+      const isValidGujarat = validateGujaratPincode(profileData.pincode);
       if (!isValidGujarat) {
         setError('Please enter a valid Gujarat pincode (starting with 36, 38, or 39)');
         return;
@@ -131,6 +129,18 @@ const GoogleLogin: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const validateGujaratPincode = (pincode: string): boolean => {
+    if (!pincode || pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
+      return false;
+    }
+
+    // Gujarat pincodes start with 36, 38, 39
+    const gujaratPrefixes = ['36', '38', '39'];
+    const prefix = pincode.substring(0, 2);
+    
+    return gujaratPrefixes.includes(prefix);
   };
 
   if (showProfileForm) {

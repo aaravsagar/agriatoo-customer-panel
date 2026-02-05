@@ -48,29 +48,12 @@ export const useAuth = () => {
             phone: data.phone || '',
             address: data.address || '',
             pincode: data.pincode || '',
-            shopName: data.shopName || '',
-            deliveryRadius: data.deliveryRadius || 20,
-            coveredPincodes: data.coveredPincodes || [],
             createdAt: data.createdAt?.toDate?.() || new Date(),
             isActive: data.isActive ?? true,
           });
         } else {
-          // ✅ Auto-create user document instead of logout
-          const newUser: User = {
-            id: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            role: USER_ROLES.FARMER, // default role
-            name: 'New User',
-            phone: '',
-            createdAt: new Date(),
-            isActive: true,
-          };
-
-          await setDoc(userRef, newUser);
-
-          console.warn('User doc not found, created new user:', newUser);
-
-          setUser(newUser);
+          // User document doesn't exist, they need to complete profile
+          setUser(null);
         }
       } catch (err) {
         console.error('Auth error:', err);

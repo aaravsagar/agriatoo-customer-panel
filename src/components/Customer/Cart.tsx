@@ -63,7 +63,7 @@ const Cart: React.FC = () => {
       
       // Check if product has covered pincodes
       if (!firstProduct.coveredPincodes || !Array.isArray(firstProduct.coveredPincodes)) {
-        return `Products from ${firstProduct.sellerName} don't have delivery information. Please contact seller.`;
+        return `Products from ${firstProduct.sellerName} don't have delivery information.`;
       }
       
       // Check if customer pincode is covered

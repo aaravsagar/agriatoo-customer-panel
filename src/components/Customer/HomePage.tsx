@@ -23,10 +23,10 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user?.pincode) {
+    if (user) {
       fetchProducts();
     }
-  }, [selectedCategory, user?.pincode]);
+  }, [selectedCategory, user]);
 
   // Subscribe to real-time stock updates for displayed products
   useEffect(() => {
@@ -47,7 +47,7 @@ const HomePage: React.FC = () => {
   }, [products.map(p => p.id).join(','), subscribeToProductStock]);
 
   const fetchProducts = async () => {
-    if (!user?.pincode) {
+    if (!user || !user.pincode) {
       setLoading(false);
       return;
     }
@@ -93,10 +93,10 @@ const HomePage: React.FC = () => {
       }
 
       // Filter by user's pincode
-      if (user.pincode) {
+      if (user && user.pincode) {
         productsData = productsData.filter(product => 
           Array.isArray(product.coveredPincodes) && 
-          product.coveredPincodes.includes(user.pincode!)
+          product.coveredPincodes.includes(user.pincode)
         );
       }
 
