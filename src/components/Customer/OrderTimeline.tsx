@@ -25,7 +25,7 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ order }) => {
       },
       {
         id: 'out_for_delivery',
-        title: 'Shipped',
+        title: 'Out For Delivery',
         description: 'Your order is on the way',
         icon: Truck,
         timestamp: order.outForDeliveryAt
