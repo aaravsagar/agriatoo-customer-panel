@@ -1,75 +1,98 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, User, LogOut, Package } from 'lucide-react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../../config/firebase';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShoppingCart, User, Search, Package } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
+import Logo from '../UI/Logo';
+import { PRODUCT_CATEGORIES } from '../../config/constants';
 
 const Header: React.FC = () => {
   const { user } = useAuth();
   const { totalItems } = useCart();
+  const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
+  const params = new URLSearchParams(location.search);
+  const initialSearch = params.get('search') || '';
+
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
+
+  // Keep input synced with URL
+  useEffect(() => {
+    setSearchTerm(initialSearch);
+  }, [initialSearch]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (searchTerm.trim()) {
+      navigate(`/?search=${encodeURIComponent(searchTerm)}`);
+    } else {
       navigate('/');
-    } catch (error) {
-      console.error('Logout error:', error);
     }
   };
 
   return (
-    <header className="bg-white shadow-lg border-b border-green-100">
+    <header className="bg-white sticky top-0 z-40 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">A</span>
-            </div>
-            <span className="text-xl font-bold text-green-800">AGRIATOO</span>
+
+        {/* TOP BAR */}
+        <div className="flex items-center justify-between h-16 gap-4">
+
+          {/* LOGO */}
+          <Link to="/" className="flex-shrink-0">
+            <Logo size="md" />
           </Link>
 
+
+          {/* RIGHT ICONS */}
           <div className="flex items-center space-x-4">
+
+            {/* ORDERS */}
+            <Link
+              to="/orders"
+              className="p-2 text-gray-600 hover:text-green-600 transition-colors hidden md:block"
+            >
+              <Package className="w-6 h-6" />
+            </Link>
+
+            {/* CART */}
             <Link
               to="/cart"
-              className="relative p-2 text-gray-600 hover:text-green-600 transition-colors"
+              className="relative p-2 text-gray-600 hover:text-green-600 transition-colors hidden md:block"
             >
               <ShoppingCart className="w-6 h-6" />
               {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-green-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                   {totalItems}
                 </span>
               )}
             </Link>
 
+            {/* PROFILE */}
             <Link
-              to="/orders"
-              className="p-2 text-gray-600 hover:text-green-600 transition-colors"
-              title="My Orders"
+              to="/profile"
+              className="p-2 text-gray-600 hover:text-green-600 transition-colors hidden md:block"
+              title={user?.name || 'Profile'}
             >
-              <Package className="w-6 h-6" />
+              <User className="w-6 h-6" />
             </Link>
-
-            {user ? (
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2 text-gray-700">
-                  <User className="w-5 h-5" />
-                  <span className="hidden sm:inline">{user.name}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center space-x-1 text-gray-600 hover:text-red-600 transition-colors"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span className="hidden sm:inline">Logout</span>
-                </button>
-              </div>
-            ) : null}
           </div>
         </div>
+
+       
+
       </div>
+
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </header>
   );
 };

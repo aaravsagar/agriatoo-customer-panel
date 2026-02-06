@@ -6,6 +6,7 @@ import { auth, googleProvider, db } from '../../config/firebase';
 import { User } from '../../types';
 import { USER_ROLES } from '../../config/constants';
 import { Loader, User as UserIcon, MapPin, Phone, Home } from 'lucide-react';
+import Logo from '../UI/Logo';
 
 const GoogleLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -238,8 +239,8 @@ const GoogleLogin: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center">
         <div className="mb-8">
-          <div className="w-20 h-20 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <span className="text-white font-bold text-2xl">A</span>
+          <div className="flex justify-center mb-6">
+            <Logo size="lg" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to AGRIATOO</h1>
           <p className="text-gray-600">

@@ -59,7 +59,7 @@ export interface Order {
   assignedDeliveryBoys?: string[]; // Array of delivery boy IDs
   items: OrderItem[];
   totalAmount: number;
-  status: 'received' | 'packed' | 'out_for_delivery' | 'delivered' | 'not_delivered';
+  status: 'received' | 'packed' | 'out_for_delivery' | 'delivered' | 'not_delivered' | 'cancelled';
   cancelledAt?: Date;
   cancelledBy?: string;
   paymentMethod: 'cod';

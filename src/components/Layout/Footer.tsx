@@ -8,8 +8,8 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                <span className="text-green-800 font-bold text-sm">A</span>
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+                <span className="text-green-800 font-bold text-xl">A</span>
               </div>
               <span className="text-xl font-bold">AGRIATOO</span>
             </div>

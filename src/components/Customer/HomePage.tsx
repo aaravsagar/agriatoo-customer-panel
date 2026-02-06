@@ -172,57 +172,6 @@ const HomePage: React.FC = () => {
         </div>
       )}
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-green-600 to-green-800 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Welcome to <span className="text-green-300">AGRIATOO</span>
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 text-green-100">
-              Your trusted marketplace for quality agricultural products
-            </p>
-            <div className="text-center">
-              <p className="text-green-100 text-lg">
-                Welcome back, {user?.name}!
-              </p>
-              <p className="text-green-200 text-sm mt-2">
-                Showing products for {user?.pincode}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Truck className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Fast Delivery</h3>
-              <p className="text-gray-600">Quick delivery to your doorstep across India</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Quality Assured</h3>
-              <p className="text-gray-600">Only genuine products from verified sellers</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Trusted Network</h3>
-              <p className="text-gray-600">Connect with farmers and sellers nationwide</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Product Search and Filter */}
       <section className="py-8 bg-gray-50 border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -248,19 +197,7 @@ const HomePage: React.FC = () => {
               ))}
             </select>
             
-            {/* Cart Button with Badge */}
-            <Link
-              to="/cart"
-              className="relative bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              <span>Cart</span>
-              {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                  {totalItems}
-                </span>
-              )}
-            </Link>
+           
           </div>
         </div>
       </section>
