@@ -4,7 +4,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../../config/firebase';
 import { useAuth } from '../../hooks/useAuth';
-import { User, Phone, Home, MapPin, LogOut, Edit2, Save, X } from 'lucide-react';
+import { User, Phone, Home, MapPin, LogOut, CreditCard as Edit2, Save, X } from 'lucide-react';
 import Toast, { ToastProps } from '../UI/Toast';
 import Logo from '../UI/Logo';
 
