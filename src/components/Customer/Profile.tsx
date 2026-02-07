@@ -14,12 +14,36 @@ const Profile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastProps | null>(null);
+  
+  // Initialize form data with current user data
   const [formData, setFormData] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
     address: user?.address || '',
     pincode: user?.pincode || ''
   });
+  
+  // Track original data to detect changes
+  const [originalData, setOriginalData] = useState({
+    name: user?.name || '',
+    phone: user?.phone || '',
+    address: user?.address || '',
+    pincode: user?.pincode || ''
+  });
+
+  // Update form data when user data changes
+  React.useEffect(() => {
+    if (user) {
+      const userData = {
+        name: user.name || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        pincode: user.pincode || ''
+      };
+      setFormData(userData);
+      setOriginalData(userData);
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -35,9 +59,25 @@ const Profile: React.FC = () => {
     }
   };
 
+  // Check if any field has changed
+  const hasChanges = () => {
+    return Object.keys(formData).some(key => 
+      formData[key as keyof typeof formData] !== originalData[key as keyof typeof originalData]
+    );
+  };
   const handleSaveProfile = async () => {
     if (!user) return;
 
+    // Check if there are any changes
+    if (!hasChanges()) {
+      setToast({
+        message: 'No changes to save',
+        type: 'info',
+        onClose: () => setToast(null)
+      });
+      setIsEditing(false);
+      return;
+    }
     if (!formData.name.trim()) {
       setToast({
         message: 'Name is required',
@@ -76,13 +116,22 @@ const Profile: React.FC = () => {
 
     setLoading(true);
     try {
-      await updateDoc(doc(db, 'users', user.id), {
-        name: formData.name.trim(),
-        phone: formData.phone.trim(),
-        address: formData.address.trim(),
-        pincode: formData.pincode.trim()
+      // Only update changed fields
+      const updates: any = {};
+      Object.keys(formData).forEach(key => {
+        const formKey = key as keyof typeof formData;
+        if (formData[formKey] !== originalData[formKey]) {
+          updates[key] = formData[formKey].trim();
+        }
       });
 
+      // Add timestamp for any update
+      updates.updatedAt = new Date();
+
+      await updateDoc(doc(db, 'users', user.id), updates);
+
+      // Update original data to reflect saved changes
+      setOriginalData({ ...formData });
       setToast({
         message: 'Profile updated successfully!',
         type: 'success',
@@ -104,12 +153,8 @@ const Profile: React.FC = () => {
   };
 
   const handleCancel = () => {
-    setFormData({
-      name: user?.name || '',
-      phone: user?.phone || '',
-      address: user?.address || '',
-      pincode: user?.pincode || ''
-    });
+    // Reset to original data
+    setFormData({ ...originalData });
     setIsEditing(false);
   };
 
@@ -131,14 +176,14 @@ const Profile: React.FC = () => {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="p-6 md:p-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-900">Personal Information</h2>
               {!isEditing ? (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   <Edit2 className="w-4 h-4" />
                   <span>Edit Profile</span>
@@ -147,18 +192,18 @@ const Profile: React.FC = () => {
                 <div className="flex space-x-2">
                   <button
                     onClick={handleCancel}
-                    className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center space-x-2 px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200"
                   >
                     <X className="w-4 h-4" />
                     <span>Cancel</span>
                   </button>
                   <button
                     onClick={handleSaveProfile}
-                    disabled={loading}
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                    disabled={loading || !hasChanges()}
+                    className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                   >
                     <Save className="w-4 h-4" />
-                    <span>{loading ? 'Saving...' : 'Save'}</span>
+                    <span>{loading ? 'Saving...' : hasChanges() ? 'Save Changes' : 'No Changes'}</span>
                   </button>
                 </div>
               )}
@@ -175,11 +220,11 @@ const Profile: React.FC = () => {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
                     placeholder="Enter your full name"
                   />
                 ) : (
-                  <p className="text-gray-900 text-lg">{user.name}</p>
+                  <p className="text-gray-900 text-lg font-medium bg-gray-50 px-4 py-3 rounded-xl">{user.name}</p>
                 )}
               </div>
 
@@ -193,12 +238,12 @@ const Profile: React.FC = () => {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
                     placeholder="9876543210"
                     maxLength={10}
                   />
                 ) : (
-                  <p className="text-gray-900 text-lg">{user.phone}</p>
+                  <p className="text-gray-900 text-lg font-medium bg-gray-50 px-4 py-3 rounded-xl">{user.phone}</p>
                 )}
               </div>
 
@@ -212,11 +257,11 @@ const Profile: React.FC = () => {
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 resize-none"
                     placeholder="Enter your complete address"
                   />
                 ) : (
-                  <p className="text-gray-900 text-lg">{user.address}</p>
+                  <p className="text-gray-900 text-lg font-medium bg-gray-50 px-4 py-3 rounded-xl">{user.address}</p>
                 )}
               </div>
 
@@ -230,21 +275,21 @@ const Profile: React.FC = () => {
                     type="text"
                     value={formData.pincode}
                     onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
                     placeholder="380001"
                     maxLength={6}
                   />
                 ) : (
-                  <p className="text-gray-900 text-lg">{user.pincode}</p>
+                  <p className="text-gray-900 text-lg font-medium bg-gray-50 px-4 py-3 rounded-xl">{user.pincode}</p>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="px-6 md:px-8 py-4 bg-gray-50 border-t">
+          <div className="px-6 md:px-8 py-6 bg-gray-50 border-t">
             <button
               onClick={handleLogout}
-              className="flex items-center justify-center space-x-2 w-full px-4 py-3 border-2 border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium"
+              className="flex items-center justify-center space-x-2 w-full px-6 py-4 border-2 border-red-600 text-red-600 rounded-xl hover:bg-red-50 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
             >
               <LogOut className="w-5 h-5" />
               <span>Logout</span>

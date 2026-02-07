@@ -33,7 +33,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-white sticky top-0 z-40 shadow-sm">
+    <header className="bg-white sticky top-0 z-40 shadow-lg border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* TOP BAR */}
@@ -51,7 +51,7 @@ const Header: React.FC = () => {
             {/* ORDERS */}
             <Link
               to="/orders"
-              className="p-2 text-gray-600 hover:text-green-600 transition-colors hidden md:block"
+              className="p-3 text-gray-600 hover:text-green-600 transition-all duration-200 rounded-xl hover:bg-green-50 hidden md:block"
             >
               <Package className="w-6 h-6" />
             </Link>
@@ -59,11 +59,11 @@ const Header: React.FC = () => {
             {/* CART */}
             <Link
               to="/cart"
-              className="relative p-2 text-gray-600 hover:text-green-600 transition-colors hidden md:block"
+              className="relative p-3 text-gray-600 hover:text-green-600 transition-all duration-200 rounded-xl hover:bg-green-50 hidden md:block"
             >
               <ShoppingCart className="w-6 h-6" />
               {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1 shadow-lg animate-pulse">
                   {totalItems}
                 </span>
               )}
@@ -72,7 +72,7 @@ const Header: React.FC = () => {
             {/* PROFILE */}
             <Link
               to="/profile"
-              className="p-2 text-gray-600 hover:text-green-600 transition-colors hidden md:block"
+              className="p-3 text-gray-600 hover:text-green-600 transition-all duration-200 rounded-xl hover:bg-green-50 hidden md:block"
               title={user?.name || 'Profile'}
             >
               <User className="w-6 h-6" />
@@ -80,7 +80,6 @@ const Header: React.FC = () => {
           </div>
         </div>
 
-       
 
       </div>
 

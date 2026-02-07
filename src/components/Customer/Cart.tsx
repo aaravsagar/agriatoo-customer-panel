@@ -6,10 +6,11 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useStockManager } from '../../hooks/useStockManager';
 import { generateUniqueOrderId, generateOrderQR } from '../../utils/qrUtils';
-import { Plus, Minus, Trash2, ArrowLeft } from 'lucide-react';
+import { Trash2, ArrowLeft } from 'lucide-react';
 import { ORDER_STATUSES } from '../../config/constants';
 import OrderProgress from './OrderProgress';
 import OrderReceipt from './OrderReceipt';
+import QuantitySelector from '../UI/QuantitySelector';
 
 const Cart: React.FC = () => {
   const { user } = useAuth();
@@ -30,12 +31,6 @@ const Cart: React.FC = () => {
     console.log('🛒 Initialized:', isInitialized);
   }, [cartItems, totalAmount, isInitialized]);
 
-  const handleQuantityChange = (productId: string, change: number) => {
-    const item = cartItems.find(item => item.productId === productId);
-    if (item) {
-      updateQuantity(productId, item.quantity + change);
-    }
-  };
 
   const validateCheckout = () => {
     if (!user) return 'User not authenticated';
@@ -217,7 +212,7 @@ const Cart: React.FC = () => {
           <div className="text-center mt-6">
             <button
               onClick={handleReceiptComplete}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               Track Your Order
             </button>
@@ -250,7 +245,7 @@ const Cart: React.FC = () => {
             <p className="text-gray-600 mb-8">Add some products to get started!</p>
             <Link
               to="/"
-              className="inline-flex items-center bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
+              className="inline-flex items-center bg-green-600 text-white px-8 py-4 rounded-xl hover:bg-green-700 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
               Continue Shopping
@@ -270,16 +265,16 @@ const Cart: React.FC = () => {
           </h1>
           <Link
             to="/"
-            className="flex items-center text-green-600 hover:text-green-700"
+            className="flex items-center text-green-600 hover:text-green-700 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Continue Shopping
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md">
+        <div className="bg-white rounded-2xl shadow-xl">
           {/* Cart Items */}
-          <div className="p-6">
+          <div className="p-8">
             {cartItems.map(item => {
               // Defensive check for each item
               if (!item || !item.product) {
@@ -288,57 +283,49 @@ const Cart: React.FC = () => {
               }
 
               return (
-                <div key={item.productId} className="flex items-center py-4 border-b border-gray-200 last:border-b-0">
-                  <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0">
+                <div key={item.productId} className="flex items-center py-6 border-b border-gray-200 last:border-b-0">
+                  <div className="w-20 h-20 bg-gray-200 rounded-xl flex-shrink-0">
                     {item.product.images && item.product.images.length > 0 && item.product.images[0] ? (
                       <img
                         src={item.product.images[0]}
                         alt={item.product.name}
-                        className="w-full h-full object-cover rounded-lg"
+                        className="w-full h-full object-cover rounded-xl"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                         }}
                       />
                     ) : (
-                      <div className="w-full h-full bg-green-100 rounded-lg flex items-center justify-center">
+                      <div className="w-full h-full bg-green-100 rounded-xl flex items-center justify-center">
                         <span className="text-green-600 text-xs">No Image</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="ml-4 flex-grow">
-                    <h3 className="text-lg font-medium text-gray-900">{item.product.name || 'Unknown Product'}</h3>
+                  <div className="ml-6 flex-grow">
+                    <h3 className="text-lg font-bold text-gray-900">{item.product.name || 'Unknown Product'}</h3>
                     <p className="text-sm text-gray-600">By {item.product.sellerName || 'Unknown Seller'}</p>
-                    <p className="text-lg font-semibold text-green-600">
+                    <p className="text-lg font-bold text-green-600">
                       ₹{item.product.price || 0}/{item.product.unit || 'unit'}
                     </p>
                   </div>
 
-                  <div className="flex items-center space-x-3">
-                    <button
-                      onClick={() => handleQuantityChange(item.productId, -1)}
-                      className="p-1 rounded-full bg-gray-100 hover:bg-gray-200"
-                      disabled={item.quantity <= 1}
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <span className="w-12 text-center font-medium">{item.quantity}</span>
-                    <button
-                      onClick={() => handleQuantityChange(item.productId, 1)}
-                      className="p-1 rounded-full bg-gray-100 hover:bg-gray-200"
-                      disabled={item.quantity >= item.product.stock || !isProductInStock(item.productId, item.quantity + 1)}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                  <div className="flex items-center space-x-4">
+                    <QuantitySelector
+                      quantity={item.quantity}
+                      onQuantityChange={(newQuantity) => updateQuantity(item.productId, newQuantity)}
+                      maxQuantity={item.product.stock}
+                      disabled={!isProductInStock(item.productId, 1)}
+                      size="md"
+                    />
                   </div>
 
-                  <div className="ml-4 text-right">
-                    <p className="text-lg font-semibold">₹{((item.product.price || 0) * item.quantity).toFixed(2)}</p>
+                  <div className="ml-6 text-right">
+                    <p className="text-xl font-bold text-gray-900">₹{((item.product.price || 0) * item.quantity).toFixed(2)}</p>
                     <button
                       onClick={() => removeFromCart(item.productId)}
-                      className="text-red-600 hover:text-red-700 mt-2"
+                      className="text-red-600 hover:text-red-700 mt-2 p-2 hover:bg-red-50 rounded-lg transition-all duration-200"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
@@ -347,34 +334,34 @@ const Cart: React.FC = () => {
           </div>
 
           {/* Checkout Section */}
-          <div className="border-t border-gray-200 p-6">
-            <div className="flex justify-between items-center mb-6">
-              <span className="text-xl font-semibold">Total: ₹{totalAmount.toFixed(2)}</span>
+          <div className="border-t border-gray-200 p-8">
+            <div className="flex justify-between items-center mb-8">
+              <span className="text-2xl font-bold text-gray-900">Total: ₹{totalAmount.toFixed(2)}</span>
             </div>
 
             {/* Delivery Details */}
-            <div className="border-t pt-6 mb-6">
-              <h3 className="text-lg font-semibold mb-4">Delivery Details</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="font-medium text-gray-900">{user?.name}</p>
+            <div className="border-t pt-8 mb-8">
+              <h3 className="text-xl font-bold mb-4">Delivery Details</h3>
+              <div className="bg-gray-50 rounded-xl p-6">
+                <p className="font-bold text-gray-900">{user?.name}</p>
                 <p className="text-gray-600">{user?.phone}</p>
                 <p className="text-gray-600">{user?.address}</p>
-                <p className="text-gray-600">PIN: {user?.pincode}</p>
+                <p className="text-gray-600 font-medium">PIN: {user?.pincode}</p>
               </div>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-4">
+              <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-4 rounded-xl mb-6">
                 {error}
               </div>
             )}
 
             <div className="flex justify-between items-center">
-              <p className="text-sm text-gray-600">Payment Method: Cash on Delivery</p>
+              <p className="text-lg text-gray-600 font-medium">Payment Method: Cash on Delivery</p>
               <button
                 onClick={handlePlaceOrder}
                 disabled={loading}
-                className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                className="bg-green-600 text-white px-10 py-4 rounded-xl hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl"
               >
                 {loading ? 'Placing Order...' : 'Place Order'}
               </button>

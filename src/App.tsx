@@ -10,6 +10,10 @@ import HomePage from './components/Customer/HomePage';
 import Cart from './components/Customer/Cart';
 import MyOrders from './components/Customer/MyOrders';
 import Profile from './components/Customer/Profile';
+import TermsConditions from './pages/TermsConditions';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import ReturnPolicy from './pages/ReturnPolicy';
+import RefundPolicy from './pages/RefundPolicy';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -44,7 +48,16 @@ function AppContent() {
 export default function App() {
   return (
     <Router>
-      <AppContent />
+      <Routes>
+        {/* Public routes */}
+        <Route path="/terms" element={<TermsConditions />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/return-policy" element={<ReturnPolicy />} />
+        <Route path="/refund-policy" element={<RefundPolicy />} />
+        
+        {/* Protected routes */}
+        <Route path="/*" element={<AppContent />} />
+      </Routes>
     </Router>
   );
 }

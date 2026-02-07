@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ShoppingCart, MapPin, Check, AlertTriangle, ImageOff } from 'lucide-react';
+import { MapPin, AlertTriangle, ImageOff } from 'lucide-react';
 import { Product } from '../../types';
+import { useCart } from '../../hooks/useCart';
 import { useStockManager } from '../../hooks/useStockManager';
+import QuantitySelector from '../UI/QuantitySelector';
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart: () => void;
 }
 
 /**
@@ -54,10 +55,10 @@ const isValidImageUrl = (url: string): boolean => {
   }
 };
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
-  const [isAdding, setIsAdding] = useState(false);
+const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const { addToCart, updateQuantity, getCartItemQuantity } = useCart();
   const { isProductInStock, getProductStock } = useStockManager();
 
   // Defensive check
@@ -66,10 +67,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
     return null;
   }
 
-  const handleAddToCart = () => {
-    setIsAdding(true);
-    onAddToCart();
-    setTimeout(() => setIsAdding(false), 1000);
+  const cartQuantity = getCartItemQuantity(product.id);
+
+  const handleQuantityChange = (newQuantity: number) => {
+    if (newQuantity === 0) {
+      // Remove from cart logic is handled by updateQuantity
+      updateQuantity(product.id, 0);
+    } else if (cartQuantity === 0) {
+      // Add to cart
+      try {
+        addToCart(product, newQuantity);
+      } catch (error) {
+        console.error('Error adding to cart:', error);
+      }
+    } else {
+      // Update quantity
+      updateQuantity(product.id, newQuantity);
+    }
   };
 
   const handleImageError = () => {
@@ -112,7 +126,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
     : 0;
 
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100">
       {/* Product Image Section */}
       <div className="relative bg-gray-200 h-48">
         {optimizedImageUrl && !imageError ? (
@@ -146,43 +160,43 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
 
         {/* Discount Badge */}
         {discountPercentage > 0 && (
-          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-bold">
+          <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
             {discountPercentage}% OFF
           </div>
         )}
 
         {/* Stock Status Badge */}
         {productStock === 0 && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+          <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
             OUT OF STOCK
           </div>
         )}
         {isLowStock && productStock > 0 && (
-          <div className="absolute top-2 left-2 bg-orange-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+          <div className="absolute top-3 left-3 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
             LOW STOCK
           </div>
         )}
       </div>
 
       {/* Product Details Section */}
-      <div className="p-4">
+      <div className="p-5">
         {/* Product Name and Category */}
         <div className="flex justify-between items-start mb-2">
-          <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
+          <h3 className="text-lg font-bold text-gray-900 line-clamp-2 flex-1">
             {productName}
           </h3>
-          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded ml-2 whitespace-nowrap">
+          <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full ml-2 whitespace-nowrap font-medium">
             {productCategory}
           </span>
         </div>
 
         {/* Product Description */}
-        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+        <p className="text-gray-600 text-sm mb-4 line-clamp-2 leading-relaxed">
           {productDescription}
         </p>
 
         {/* Seller Info and Stock Status */}
-        <div className="flex justify-between items-center mb-3 text-sm">
+        <div className="flex justify-between items-center mb-4 text-sm">
           <div className="flex items-center text-gray-500">
             <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
             <span className="truncate">By {productSellerName}</span>
@@ -205,11 +219,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         </div>
 
         {/* Price and Add to Cart Section */}
-        <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-100">
+        <div className="flex justify-between items-end mt-4 pt-4 border-t border-gray-100">
           {/* Price Display */}
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-green-600">
+              <span className="text-xl font-bold text-green-600">
                 ₹{productPrice.toFixed(2)}
               </span>
               {productOriginalPrice && productOriginalPrice > productPrice && (
@@ -221,42 +235,26 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
             <span className="text-xs text-gray-500">per {productUnit}</span>
           </div>
 
-          {/* Add to Cart Button */}
-          <button
-            onClick={handleAddToCart}
-            disabled={!isInStock || isAdding || !product.coveredPincodes?.length}
-            className={`px-4 py-2 rounded-lg text-white flex items-center gap-2 transition-all duration-200 ${
-              isAdding
-                ? 'bg-green-700'
-                : isInStock && product.coveredPincodes?.length
-                ? 'bg-green-600 hover:bg-green-700 hover:shadow-md'
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
-            title={
-              !product.coveredPincodes?.length
-                ? 'Delivery not available in your area'
-                : !isInStock
-                ? 'Product out of stock'
-                : 'Add to cart'
-            }
-          >
-            {isAdding ? (
-              <>
-                <Check className="w-4 h-4" /> Added
-              </>
+          {/* Quantity Selector */}
+          <div className="flex-shrink-0">
+            {!product.coveredPincodes?.length ? (
+              <div className="px-4 py-2 bg-gray-100 text-gray-500 rounded-full text-sm font-medium">
+                No Delivery
+              </div>
+            ) : !isInStock ? (
+              <div className="px-4 py-2 bg-red-100 text-red-600 rounded-full text-sm font-medium">
+                Out of Stock
+              </div>
             ) : (
-              <>
-                <ShoppingCart className="w-4 h-4" />
-                <span className="hidden sm:inline">
-                  {!product.coveredPincodes?.length
-                    ? 'No Delivery'
-                    : isInStock
-                    ? 'Add to Cart'
-                    : 'Out of Stock'}
-                </span>
-              </>
+              <QuantitySelector
+                quantity={cartQuantity}
+                onQuantityChange={handleQuantityChange}
+                maxQuantity={productStock}
+                disabled={!isInStock}
+                size="sm"
+              />
             )}
-          </button>
+          </div>
         </div>
       </div>
     </div>

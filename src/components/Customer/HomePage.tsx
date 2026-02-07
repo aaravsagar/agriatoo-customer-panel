@@ -16,9 +16,7 @@ const HomePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [loading, setLoading] = useState(true);
-  const [showNotification, setShowNotification] = useState(false);
-  const [notificationMessage, setNotificationMessage] = useState('');
-  const { addToCart, totalItems } = useCart();
+  const { totalItems } = useCart();
   const { subscribeToProductStock, isProductInStock, getProductStock } = useStockManager();
   const navigate = useNavigate();
 
@@ -114,43 +112,6 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const handleAddToCart = (product: Product) => {
-    if (!product || !product.id) {
-      console.error('Invalid product:', product);
-      setNotificationMessage('Invalid product data');
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 3000);
-      return;
-    }
-
-    // Check real-time stock availability
-    if (!isProductInStock(product.id, 1)) {
-      setNotificationMessage(`${product.name} is currently out of stock`);
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 3000);
-      return;
-    }
-
-    // Validate product has delivery coverage
-    if (!product.coveredPincodes || product.coveredPincodes.length === 0) {
-      setNotificationMessage('This product has no delivery coverage set');
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 3000);
-      return;
-    }
-
-    try {
-      addToCart(product);
-      setNotificationMessage(`${product.name} added to cart!`);
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 3000);
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      setNotificationMessage('Failed to add item to cart');
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 3000);
-    }
-  };
 
   const filteredProducts = products.filter(product => {
     if (!product || !product.name) return false;
@@ -164,16 +125,9 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Notification Toast */}
-      {showNotification && (
-        <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-slide-in">
-          <ShoppingCart className="w-5 h-5" />
-          <span>{notificationMessage}</span>
-        </div>
-      )}
 
       {/* Product Search and Filter */}
-      <section className="py-8 bg-gray-50 border-b">
+      <section className="py-8 bg-white border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
@@ -183,21 +137,19 @@ const HomePage: React.FC = () => {
                 placeholder="Search products..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
               />
             </div>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white"
             >
               <option value="">All Categories</option>
               {PRODUCT_CATEGORIES.map(category => (
                 <option key={category} value={category}>{category}</option>
               ))}
             </select>
-            
-           
           </div>
         </div>
       </section>
@@ -205,7 +157,7 @@ const HomePage: React.FC = () => {
       {/* Products Grid */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8">
             {selectedCategory ? `${selectedCategory} Products` : 'Featured Products'}
           </h2>
 
@@ -215,13 +167,12 @@ const HomePage: React.FC = () => {
               <p className="text-gray-600">Loading products...</p>
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {filteredProducts.map(product => (
                 product && product.id ? (
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onAddToCart={() => handleAddToCart(product)}
                   />
                 ) : null
               ))}
@@ -243,7 +194,7 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-green-600 text-white py-16">
+      <section className="bg-gradient-to-r from-green-600 to-green-700 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Order?</h2>
           <p className="text-xl mb-8 text-green-100">
@@ -251,7 +202,7 @@ const HomePage: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/cart')}
-            className="inline-flex items-center bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+            className="inline-flex items-center bg-white text-green-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             <ShoppingCart className="w-5 h-5 mr-2" />
             View Cart ({totalItems} items)
@@ -259,21 +210,6 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      <style>{`
-        @keyframes slide-in {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-        .animate-slide-in {
-          animation: slide-in 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 };

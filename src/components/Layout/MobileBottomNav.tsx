@@ -15,7 +15,7 @@ const MobileBottomNav: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-50 safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-50 safe-bottom shadow-2xl">
       <div className="grid grid-cols-4 h-16">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -25,23 +25,23 @@ const MobileBottomNav: React.FC = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center justify-center relative transition-colors ${
-                isActive ? 'text-green-600' : 'text-gray-600'
+              className={`flex flex-col items-center justify-center relative transition-all duration-200 ${
+                isActive ? 'text-green-600 bg-green-50' : 'text-gray-600 hover:text-green-500'
               }`}
             >
               <div className="relative">
-                <Icon className={`w-6 h-6 ${isActive ? 'scale-110' : ''} transition-transform`} />
+                <Icon className={`w-6 h-6 ${isActive ? 'scale-110' : ''} transition-transform duration-200`} />
                 {item.badge && item.badge > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-lg animate-pulse">
                     {item.badge}
                   </span>
                 )}
               </div>
-              <span className={`text-xs mt-1 ${isActive ? 'font-semibold' : ''}`}>
+              <span className={`text-xs mt-1 ${isActive ? 'font-semibold' : 'font-medium'}`}>
                 {item.label}
               </span>
               {isActive && (
-                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-green-600 rounded-t-full"></div>
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-green-600 rounded-t-full"></div>
               )}
             </Link>
           );
