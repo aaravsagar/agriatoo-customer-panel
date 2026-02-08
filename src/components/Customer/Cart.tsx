@@ -6,7 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../context/CartContext';
 import { useStockManager } from '../../hooks/useStockManager';
 import { generateUniqueOrderId, generateOrderQR } from '../../utils/qrUtils';
-import { Trash2, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Trash2, ArrowLeft, CheckCircle, ChevronRight } from 'lucide-react';
 import { ORDER_STATUSES } from '../../config/constants';
 import OrderProgress from './OrderProgress';
 import QuantitySelector from '../UI/QuantitySelector';
@@ -23,6 +23,10 @@ const Cart: React.FC = () => {
   const [error, setError] = useState('');
   const [orderData, setOrderData] = useState<any>(null);
   const [cancelTimer, setCancelTimer] = useState(5);
+  const [orderTimeout, setOrderTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [sliderPosition, setSliderPosition] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Success screen timer
   useEffect(() => {
@@ -35,6 +39,50 @@ const Cart: React.FC = () => {
       navigate('/orders');
     }
   }, [showSuccess, cancelTimer, navigate]);
+
+  // Check if mobile device
+  const isMobile = () => {
+    return window.innerWidth < 1024; // lg breakpoint
+  };
+
+  const handleSliderStart = (e: React.MouseEvent | React.TouchEvent) => {
+    setIsDragging(true);
+  };
+
+  const handleSliderMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDragging) return;
+
+    const container = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    let clientX: number;
+
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+    } else {
+      clientX = e.clientX;
+    }
+
+    const position = clientX - container.left;
+    const maxPosition = container.width - 60; // 60px is the slider button width
+    const newPosition = Math.max(0, Math.min(position, maxPosition));
+    const percentage = (newPosition / maxPosition) * 100;
+
+    setSliderPosition(percentage);
+
+    // If slider reaches the end (95% or more), trigger order
+    if (percentage >= 95) {
+      setIsDragging(false);
+      setSliderPosition(100);
+      handlePlaceOrder();
+    }
+  };
+
+  const handleSliderEnd = () => {
+    setIsDragging(false);
+    // Reset slider if not completed
+    if (sliderPosition < 95) {
+      setSliderPosition(0);
+    }
+  };
 
   const validateCheckout = () => {
     if (!user) return 'User not authenticated';
@@ -74,16 +122,29 @@ const Cart: React.FC = () => {
     const validationError = validateCheckout();
     if (validationError) {
       setError(validationError);
+      setSliderPosition(0); // Reset slider on error
       return;
     }
 
     if (!user) return;
 
+    // For desktop, show confirmation popup
+    if (!isMobile()) {
+      setShowConfirmation(true);
+      return;
+    }
+
+    // For mobile, directly place order (slider is the confirmation)
+    confirmPlaceOrder();
+  };
+
+  const confirmPlaceOrder = async () => {
+    setShowConfirmation(false);
     setError('');
     setShowProgress(true);
 
     // Start the actual order processing after a delay to show animation
-    setTimeout(async () => {
+    const timeout = setTimeout(async () => {
       setLoading(true);
       
       try {
@@ -154,22 +215,66 @@ const Cart: React.FC = () => {
         setLoading(false);
       }
     }, 5000); // Increased delay to allow for better animation experience
+    
+    setOrderTimeout(timeout);
   };
 
   const handleCancelOrder = () => {
+    // Clear the timeout to prevent order from being placed
+    if (orderTimeout) {
+      clearTimeout(orderTimeout);
+      setOrderTimeout(null);
+    }
+    
     setShowProgress(false);
     setShowSuccess(false);
     setCancelTimer(5);
     setError('Order was cancelled');
-    // Clear any ongoing processes
     setLoading(false);
   };
 
-  const handleCancelOrder = () => {
-    setShowSuccess(false);
-    setCancelTimer(5);
-    navigate('/orders');
-  };
+  // Show confirmation popup (desktop only)
+  if (showConfirmation) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
+          <div className="mb-4">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+              Important Notice
+            </h3>
+            <p className="text-gray-600 text-center mb-4">
+              Once your order is placed and packed, it cannot be cancelled. Please review your order carefully before confirming.
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+              <p className="text-sm text-amber-800 font-medium">
+                ⚠️ You can only cancel the order during the processing stage, before it's packed by the seller.
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowConfirmation(false)}
+              className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-semibold"
+            >
+              Review Order
+            </button>
+            <button
+              onClick={confirmPlaceOrder}
+              className="flex-1 px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+            >
+              I Understand, Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Show order progress
   if (showProgress) {
@@ -373,13 +478,55 @@ const Cart: React.FC = () => {
               <div className="space-y-3">
                 <p className="text-sm text-gray-600 text-center">Payment Method: Cash on Delivery</p>
                 
+                {/* Desktop: Regular button */}
                 <button
                   onClick={handlePlaceOrder}
                   disabled={loading}
-                  className="w-full bg-green-600 text-white py-4 rounded-xl hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+                  className="hidden lg:flex w-full bg-green-600 text-white py-4 rounded-xl hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 items-center justify-center"
                 >
                   {loading ? 'Placing Order...' : 'Confirm Order'}
                 </button>
+
+                {/* Mobile: Slider */}
+                <div className="lg:hidden">
+                  <div 
+                    className="relative w-full h-16 bg-green-100 rounded-xl overflow-hidden cursor-pointer select-none"
+                    onMouseMove={handleSliderMove}
+                    onMouseUp={handleSliderEnd}
+                    onMouseLeave={handleSliderEnd}
+                    onTouchMove={handleSliderMove}
+                    onTouchEnd={handleSliderEnd}
+                  >
+                    {/* Background gradient */}
+                    <div 
+                      className="absolute inset-0 bg-gradient-to-r from-green-400 to-green-600 transition-all duration-300"
+                      style={{ width: `${sliderPosition}%` }}
+                    />
+                    
+                    {/* Slider text */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="text-gray-700 font-bold text-lg">
+                        {sliderPosition > 50 ? 'Release to Confirm' : 'Slide to Confirm Order'}
+                      </span>
+                    </div>
+                    
+                    {/* Slider button */}
+                    <div 
+                      className="absolute top-2 left-2 w-12 h-12 bg-white rounded-lg shadow-lg flex items-center justify-center transition-all duration-200"
+                      style={{ 
+                        left: `calc(${sliderPosition}% + 8px)`,
+                        transform: sliderPosition > 95 ? 'scale(0.9)' : 'scale(1)'
+                      }}
+                      onMouseDown={handleSliderStart}
+                      onTouchStart={handleSliderStart}
+                    >
+                      <ChevronRight className="w-6 h-6 text-green-600" />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    Slide to confirm your order
+                  </p>
+                </div>
               </div>
             </div>
           </div>

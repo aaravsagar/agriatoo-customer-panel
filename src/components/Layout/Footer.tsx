@@ -13,7 +13,7 @@ const Footer: React.FC = () => {
               <Logo size="lg" className="mb-4" />
             </div>
             <p className="text-green-200 mb-4">
-              Your trusted partner for agricultural products. Connecting farmers with quality fertilizers, 
+              Your trusted partner for agricultural products. Connecting farmers with quality fertilizers,
               pesticides, seeds, and tools from verified sellers across Gujarat, India.
             </p>
             <div className="flex space-x-4">
@@ -51,7 +51,7 @@ const Footer: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
-                <span className="text-sm">+91-9999-AGRI-TOO</span>
+                <span className="text-sm">+91-9313971302</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4" />
@@ -59,19 +59,33 @@ const Footer: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div>
             <h3 className="text-lg font-semibold mb-4">Service Areas</h3>
             <p className="text-green-200 text-sm">
-              Currently serving Gujarat with plans to expand across India. 
+              Currently serving Gujarat with plans to expand across India.
               Quality agricultural products delivered to your doorstep.
             </p>
           </div>
         </div>
 
-        <div className="border-t border-green-700 pt-8 mt-8 text-center">
+        {/* Footer Bottom */}
+        <div className="border-t border-green-700 pt-8 mt-8 text-center space-y-2">
           <p className="text-green-200">
-            &copy; 2024 AGRIATOO. All rights reserved. Empowering Indian Agriculture.
+            &copy; 2026 AGRIATOO. All rights reserved.
+          </p>
+
+          <p className="text-green-300 text-sm">
+            Built from scratch with ❤️ by{' '}
+            <a
+              href="https://pbvits.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-white transition-colors"
+            >
+              PBVITS (Pixel Byte Virtual Information Technologies Solutions)
+            </a>{' '}
+            — Empowering Indian Startups.
           </p>
         </div>
       </div>
