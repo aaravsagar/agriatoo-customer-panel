@@ -27,11 +27,6 @@ export const generateUniqueOrderId = (customerPincode: string): string => {
   
   const orderId = `AGRT${day}${month}${year}${pincodeLastTwo}${hour}${minute}${random4}`;
   
-  console.log(`Generated Order ID: ${orderId}`);
-  console.log(`- Date: ${day}/${month}/${year}`);
-  console.log(`- Pincode Last 2: ${pincodeLastTwo}`);
-  console.log(`- Time: ${hour}:${minute}`);
-  console.log(`- Random: ${random4}`);
   
   return orderId;
 };

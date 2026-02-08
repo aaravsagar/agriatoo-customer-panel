@@ -77,7 +77,6 @@ export const useStockManager = () => {
         return newMap;
       });
 
-      console.log('✅ Stock updated successfully:', updatedProducts);
       return true;
     } catch (error) {
       console.error('❌ Error updating stock:', error);

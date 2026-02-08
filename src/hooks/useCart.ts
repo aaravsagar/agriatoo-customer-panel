@@ -12,12 +12,10 @@ export const useCart = () => {
   // Load cart from localStorage on mount
   useEffect(() => {
     try {
-      console.log('🔄 Loading cart from localStorage...');
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
       
       if (savedCart) {
         const parsedCart = JSON.parse(savedCart);
-        console.log('✅ Cart loaded from localStorage:', parsedCart);
         
         // Validate cart items
         const validCart = parsedCart.filter((item: any) => {
@@ -33,9 +31,7 @@ export const useCart = () => {
         });
         
         setCartItems(validCart);
-        console.log('✅ Valid cart items:', validCart.length);
       } else {
-        console.log('ℹ️ No saved cart found');
       }
     } catch (error) {
       console.error('❌ Error loading cart from localStorage:', error);
@@ -48,14 +44,11 @@ export const useCart = () => {
   // Save cart to localStorage whenever it changes (only after initialization)
   useEffect(() => {
     if (!isInitialized) {
-      console.log('⏳ Waiting for initialization...');
       return;
     }
 
     try {
-      console.log('💾 Saving cart to localStorage:', cartItems);
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
-      console.log('✅ Cart saved successfully');
       
       // Dispatch custom event for other components to listen
       window.dispatchEvent(new CustomEvent('cartUpdated', { 
@@ -67,7 +60,6 @@ export const useCart = () => {
   }, [cartItems, isInitialized]);
 
   const addToCart = (product: Product, quantity: number = 1) => {
-    console.log('🛒 Adding to cart:', product.name, 'Qty:', quantity);
     
     if (!product || !product.id) {
       console.error('❌ Invalid product:', product);
@@ -84,7 +76,6 @@ export const useCart = () => {
       const existingItem = prev.find(item => item.productId === product.id);
       
       if (existingItem) {
-        console.log('📦 Product already in cart, updating quantity');
         const requestedQuantity = existingItem.quantity + quantity;
         
         // Check if requested quantity is available
@@ -99,28 +90,23 @@ export const useCart = () => {
             ? { ...item, quantity: newQuantity }
             : item
         );
-        console.log('✅ Cart updated:', updated);
         return updated;
       }
       
       // Add new item to cart
-      console.log('➕ Adding new item to cart');
       const newItem: CartItem = { 
         productId: product.id, 
         product: product, 
         quantity: Math.min(quantity, product.stock) 
       };
       const updated = [...prev, newItem];
-      console.log('✅ Cart updated:', updated);
       return updated;
     });
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
-    console.log('🔄 Updating quantity for product:', productId, 'New qty:', quantity);
     
     if (quantity <= 0) {
-      console.log('🗑️ Quantity is 0, removing item');
       removeFromCart(productId);
       return;
     }
@@ -135,7 +121,6 @@ export const useCart = () => {
       prev.map(item => {
         if (item.productId === productId) {
           const newQuantity = Math.min(quantity, item.product.stock);
-          console.log('✅ Updated quantity:', newQuantity);
           return { ...item, quantity: newQuantity };
         }
         return item;
@@ -144,19 +129,15 @@ export const useCart = () => {
   };
 
   const removeFromCart = (productId: string) => {
-    console.log('🗑️ Removing product from cart:', productId);
     setCartItems(prev => {
       const updated = prev.filter(item => item.productId !== productId);
-      console.log('✅ Cart after removal:', updated);
       return updated;
     });
   };
 
   const clearCart = () => {
-    console.log('🧹 Clearing cart');
     setCartItems([]);
     localStorage.removeItem(CART_STORAGE_KEY);
-    console.log('✅ Cart cleared');
   };
 
   const totalAmount = cartItems.reduce(
@@ -175,7 +156,6 @@ export const useCart = () => {
     return item ? item.quantity : 0;
   };
 
-  console.log('🛒 Cart State - Items:', cartItems.length, 'Total:', totalAmount, 'Initialized:', isInitialized);
 
   return {
     cartItems,

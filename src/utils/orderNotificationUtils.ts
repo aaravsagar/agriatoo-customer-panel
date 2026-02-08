@@ -88,9 +88,7 @@ export const requestNotificationPermissionOnMount = async (): Promise<boolean> =
   try {
     const granted = await notificationService.requestPermission();
     if (granted) {
-      console.log('Notification permission granted');
     } else {
-      console.log('Notification permission denied');
     }
     return granted;
   } catch (error) {

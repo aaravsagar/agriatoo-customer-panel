@@ -110,12 +110,10 @@ const fetchPincodeData = async (pincode: string): Promise<PincodeInfo | null> =>
   const timestamp = cacheTimestamp.get(cacheKey);
   
   if (cached && timestamp && (Date.now() - timestamp) < CACHE_DURATION) {
-    console.log(`Using cached data for pincode ${pincode}`);
     return cached;
   }
 
   try {
-    console.log(`Fetching data for pincode ${pincode} from API...`);
     
     const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
     
@@ -155,7 +153,6 @@ const fetchPincodeData = async (pincode: string): Promise<PincodeInfo | null> =>
     pincodeCache.set(cacheKey, pincodeInfo);
     cacheTimestamp.set(cacheKey, Date.now());
     
-    console.log(`Successfully fetched data for pincode ${pincode}:`, pincodeInfo);
     return pincodeInfo;
     
   } catch (error) {
@@ -234,7 +231,6 @@ export const generateCoveredPincodes = async (basePincode: string, radiusKm: num
     return [basePincode]; // Return at least the base pincode
   }
 
-  console.log(`Generating covered pincodes for ${basePincode} within ${radiusKm}km radius`);
 
   // Check cache for nearby pincodes
   const cacheKey = `${basePincode}_${radiusKm}`;
@@ -242,7 +238,6 @@ export const generateCoveredPincodes = async (basePincode: string, radiusKm: num
   const timestamp = cacheTimestamp.get(cacheKey);
   
   if (cached && timestamp && (Date.now() - timestamp) < CACHE_DURATION) {
-    console.log(`Using cached nearby pincodes for ${basePincode}`);
     return cached;
   }
 
@@ -276,7 +271,6 @@ export const generateCoveredPincodes = async (basePincode: string, radiusKm: num
           );
           
           if (distance <= radiusKm) {
-            console.log(`${pincode} (${info.area}) is ${distance.toFixed(2)}km away - INCLUDED`);
             return pincode;
           }
         }
@@ -300,7 +294,6 @@ export const generateCoveredPincodes = async (basePincode: string, radiusKm: num
     console.error('Error generating covered pincodes:', error);
   }
 
-  console.log(`Found ${covered.length} pincodes within ${radiusKm}km of ${basePincode}:`, covered);
   return covered.sort();
 };
 
@@ -361,5 +354,4 @@ export const clearPincodeCache = () => {
   pincodeCache.clear();
   nearbyPincodesCache.clear();
   cacheTimestamp.clear();
-  console.log('Pincode cache cleared');
 };
