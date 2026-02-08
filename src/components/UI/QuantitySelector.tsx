@@ -19,9 +19,9 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
   className = ''
 }) => {
   const sizeClasses = {
-    sm: 'h-8 text-sm',
-    md: 'h-10 text-base',
-    lg: 'h-12 text-lg'
+    sm: 'h-8 text-xs',
+    md: 'h-10 text-sm',
+    lg: 'h-12 text-base'
   };
 
   const buttonSizeClasses = {
@@ -42,35 +42,34 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
         onClick={() => onQuantityChange(1)}
         disabled={disabled}
         className={`
-          flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-full 
-          hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed 
-          transition-all duration-200 font-medium shadow-md hover:shadow-lg
+          flex items-center justify-center px-4 py-2 bg-white border-2 border-green-600 text-green-600 rounded-lg 
+          hover:bg-green-600 hover:text-white disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed 
+          transition-all duration-200 font-semibold shadow-sm hover:shadow-md transform hover:scale-105 active:scale-95
           ${sizeClasses[size]} ${className}
         `}
       >
-        <ShoppingCart className={iconSizeClasses[size]} />
-        <span className="whitespace-nowrap">Add</span>
+        <span className="text-xs font-bold">ADD</span>
       </button>
     );
   }
 
   return (
-    <div className={`flex items-center bg-green-50 rounded-full border-2 border-green-200 ${className}`}>
+    <div className={`flex items-center bg-green-600 rounded-lg shadow-md ${className}`}>
       <button
         onClick={() => onQuantityChange(Math.max(0, quantity - 1))}
         disabled={disabled || quantity <= 0}
         className={`
-          flex items-center justify-center bg-white border-r border-green-200 rounded-l-full
-          hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed
-          transition-all duration-200 text-green-600 hover:text-green-700
+          flex items-center justify-center bg-green-600 text-white rounded-l-lg
+          hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed
+          transition-all duration-200 transform hover:scale-110 active:scale-95
           ${buttonSizeClasses[size]}
         `}
       >
-        <Minus className={iconSizeClasses[size]} strokeWidth={2.5} />
+        <Minus className={iconSizeClasses[size]} strokeWidth={3} />
       </button>
       
       <div className={`
-        flex items-center justify-center bg-white text-green-700 font-semibold min-w-[3rem] px-2
+        flex items-center justify-center bg-green-600 text-white font-bold min-w-[2rem] px-2
         ${sizeClasses[size]}
       `}>
         {quantity}
@@ -80,13 +79,13 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
         onClick={() => onQuantityChange(Math.min(maxQuantity, quantity + 1))}
         disabled={disabled || quantity >= maxQuantity}
         className={`
-          flex items-center justify-center bg-white border-l border-green-200 rounded-r-full
-          hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed
-          transition-all duration-200 text-green-600 hover:text-green-700
+          flex items-center justify-center bg-green-600 text-white rounded-r-lg
+          hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed
+          transition-all duration-200 transform hover:scale-110 active:scale-95
           ${buttonSizeClasses[size]}
         `}
       >
-        <Plus className={iconSizeClasses[size]} strokeWidth={2.5} />
+        <Plus className={iconSizeClasses[size]} strokeWidth={3} />
       </button>
     </div>
   );

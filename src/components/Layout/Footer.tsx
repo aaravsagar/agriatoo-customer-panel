@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Phone, Mail } from 'lucide-react';
+import Logo from '../UI/Logo';
 
 const Footer: React.FC = () => {
   return (
@@ -8,20 +9,17 @@ const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-                <span className="text-green-800 font-bold text-xl">A</span>
-              </div>
-              <span className="text-xl font-bold">AGRIATOO</span>
+            <div className="mb-4">
+              <Logo size="lg" className="mb-4" />
             </div>
             <p className="text-green-200 mb-4">
               Your trusted partner for agricultural products. Connecting farmers with quality fertilizers, 
-              pesticides, seeds, and tools from verified sellers across India.
+              pesticides, seeds, and tools from verified sellers across Gujarat, India.
             </p>
             <div className="flex space-x-4">
               <div className="flex items-center space-x-2">
                 <MapPin className="w-4 h-4" />
-                <span className="text-sm">Pan India Delivery</span>
+                <span className="text-sm">Gujarat, India</span>
               </div>
             </div>
           </div>

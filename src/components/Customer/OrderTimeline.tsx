@@ -79,9 +79,9 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ order }) => {
         <div className="block md:hidden">
           <div className="relative">
             {/* Vertical Progress Line */}
-            <div className="absolute left-8 top-8 bottom-8 w-0.5 bg-gray-200">
+            <div className="absolute left-8 top-8 bottom-8 w-1 bg-gray-200 rounded-full">
               <div
-                className="bg-green-600 w-full transition-all duration-500 ease-out"
+                className="bg-green-600 w-full transition-all duration-500 ease-out rounded-full"
                 style={{
                   height: `${(currentStepIndex / (steps.length - 1)) * 100}%`
                 }}
@@ -168,9 +168,9 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ order }) => {
         <div className="hidden md:block">
           <div className="relative">
             {/* Horizontal Progress Line */}
-            <div className="absolute top-8 left-8 right-8 h-0.5 bg-gray-200">
+            <div className="absolute top-8 left-8 right-8 h-1 bg-gray-200 rounded-full">
               <div
-                className="bg-green-600 h-full transition-all duration-500 ease-out"
+                className="bg-green-600 h-full transition-all duration-500 ease-out rounded-full"
                 style={{
                   width: `${(currentStepIndex / (steps.length - 1)) * 100}%`
                 }}

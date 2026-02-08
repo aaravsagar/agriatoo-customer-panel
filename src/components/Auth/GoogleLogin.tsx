@@ -25,7 +25,6 @@ const GoogleLogin: React.FC = () => {
       return false;
     }
 
-    // Gujarat pincodes start with 36, 38, 39
     const gujaratPrefixes = ['36', '38', '39'];
     const prefix = pincode.substring(0, 2);
     
@@ -40,15 +39,12 @@ const GoogleLogin: React.FC = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
-      // Check if user exists in Firestore
       const userRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userRef);
 
       if (userDoc.exists()) {
-        // User exists, navigate to home
         navigate('/');
       } else {
-        // New user, show profile form
         setProfileData({
           name: user.displayName || '',
           phone: '',
@@ -71,7 +67,6 @@ const GoogleLogin: React.FC = () => {
     setError('');
 
     try {
-      // Validate required fields
       if (!profileData.name.trim()) {
         setError('Full name is required');
         return;
@@ -89,7 +84,6 @@ const GoogleLogin: React.FC = () => {
         return;
       }
 
-      // Validate Gujarat pincode
       const isValidGujarat = validateGujaratPincode(profileData.pincode);
       if (!isValidGujarat) {
         setError('Please enter a valid Gujarat pincode (starting with 36, 38, or 39)');
@@ -102,7 +96,6 @@ const GoogleLogin: React.FC = () => {
         return;
       }
 
-      // Create user document with existing structure
       const userData: User = {
         id: user.uid,
         email: user.email || '',
@@ -117,7 +110,6 @@ const GoogleLogin: React.FC = () => {
 
       await setDoc(doc(db, 'users', user.uid), userData);
       
-      // Navigate to home
       navigate('/');
     } catch (error: any) {
       console.error('Profile creation error:', error);
@@ -275,7 +267,10 @@ const GoogleLogin: React.FC = () => {
         </button>
 
         <p className="text-xs text-gray-500 mt-6">
-          By continuing, you agree to our Terms of Service and Privacy Policy
+          By continuing, you agree to our{' '}
+          <a href="/terms" className="text-green-600 hover:underline">Terms of Service</a>
+          {' '}and{' '}
+          <a href="/privacy" className="text-green-600 hover:underline">Privacy Policy</a>
         </p>
       </div>
     </div>

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { doc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../../config/firebase';
 import { useAuth } from '../../hooks/useAuth';
-import { User, Phone, Home, MapPin, LogOut, CreditCard as Edit2, Save, X } from 'lucide-react';
+import { User, Phone, Home, MapPin, LogOut, Edit2, Save, X } from 'lucide-react';
 import Toast, { ToastProps } from '../UI/Toast';
 import Logo from '../UI/Logo';
 
@@ -15,24 +15,22 @@ const Profile: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastProps | null>(null);
   
-  // Initialize form data with current user data
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    phone: user?.phone || '',
-    address: user?.address || '',
-    pincode: user?.pincode || ''
+    name: '',
+    phone: '',
+    address: '',
+    pincode: ''
   });
   
-  // Track original data to detect changes
   const [originalData, setOriginalData] = useState({
-    name: user?.name || '',
-    phone: user?.phone || '',
-    address: user?.address || '',
-    pincode: user?.pincode || ''
+    name: '',
+    phone: '',
+    address: '',
+    pincode: ''
   });
 
-  // Update form data when user data changes
-  React.useEffect(() => {
+  // Prefill form with existing user data
+  useEffect(() => {
     if (user) {
       const userData = {
         name: user.name || '',
@@ -59,16 +57,15 @@ const Profile: React.FC = () => {
     }
   };
 
-  // Check if any field has changed
   const hasChanges = () => {
     return Object.keys(formData).some(key => 
       formData[key as keyof typeof formData] !== originalData[key as keyof typeof originalData]
     );
   };
+
   const handleSaveProfile = async () => {
     if (!user) return;
 
-    // Check if there are any changes
     if (!hasChanges()) {
       setToast({
         message: 'No changes to save',
@@ -78,6 +75,7 @@ const Profile: React.FC = () => {
       setIsEditing(false);
       return;
     }
+
     if (!formData.name.trim()) {
       setToast({
         message: 'Name is required',
@@ -116,7 +114,6 @@ const Profile: React.FC = () => {
 
     setLoading(true);
     try {
-      // Only update changed fields
       const updates: any = {};
       Object.keys(formData).forEach(key => {
         const formKey = key as keyof typeof formData;
@@ -125,12 +122,10 @@ const Profile: React.FC = () => {
         }
       });
 
-      // Add timestamp for any update
       updates.updatedAt = new Date();
 
       await updateDoc(doc(db, 'users', user.id), updates);
 
-      // Update original data to reflect saved changes
       setOriginalData({ ...formData });
       setToast({
         message: 'Profile updated successfully!',
@@ -153,7 +148,6 @@ const Profile: React.FC = () => {
   };
 
   const handleCancel = () => {
-    // Reset to original data
     setFormData({ ...originalData });
     setIsEditing(false);
   };

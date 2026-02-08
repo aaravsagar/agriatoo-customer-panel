@@ -6,10 +6,9 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useStockManager } from '../../hooks/useStockManager';
 import { generateUniqueOrderId, generateOrderQR } from '../../utils/qrUtils';
-import { Trash2, ArrowLeft } from 'lucide-react';
+import { Trash2, ArrowLeft, CheckCircle } from 'lucide-react';
 import { ORDER_STATUSES } from '../../config/constants';
 import OrderProgress from './OrderProgress';
-import OrderReceipt from './OrderReceipt';
 import QuantitySelector from '../UI/QuantitySelector';
 
 const Cart: React.FC = () => {
@@ -19,18 +18,23 @@ const Cart: React.FC = () => {
   const navigate = useNavigate();
   
   const [showProgress, setShowProgress] = useState(false);
-  const [showReceipt, setShowReceipt] = useState<any>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [orderData, setOrderData] = useState<any>(null);
+  const [cancelTimer, setCancelTimer] = useState(5);
 
-  // Debug: Log cart state
+  // Success screen timer
   useEffect(() => {
-    console.log('🛒 Cart Component - Items:', cartItems.length);
-    console.log('🛒 Cart Items:', cartItems);
-    console.log('🛒 Total Amount:', totalAmount);
-    console.log('🛒 Initialized:', isInitialized);
-  }, [cartItems, totalAmount, isInitialized]);
-
+    if (showSuccess && cancelTimer > 0) {
+      const timer = setTimeout(() => {
+        setCancelTimer(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (showSuccess && cancelTimer === 0) {
+      navigate('/orders');
+    }
+  }, [showSuccess, cancelTimer, navigate]);
 
   const validateCheckout = () => {
     if (!user) return 'User not authenticated';
@@ -39,14 +43,12 @@ const Cart: React.FC = () => {
     if (!user.address?.trim()) return 'Address is required in profile';
     if (!user.pincode?.trim()) return 'PIN code is required in profile';
     
-    // Check stock availability for all items
     for (const item of cartItems) {
       if (!isProductInStock(item.productId, item.quantity)) {
         return `${item.product.name} is out of stock or insufficient quantity available`;
       }
     }
     
-    // Validate pincode serviceability for each seller
     const sellers = [...new Set(cartItems.map(item => item.product.sellerId))];
     for (const sellerId of sellers) {
       const sellerItems = cartItems.filter(item => item.product.sellerId === sellerId);
@@ -56,12 +58,10 @@ const Cart: React.FC = () => {
         return 'Invalid product data found in cart';
       }
       
-      // Check if product has covered pincodes
       if (!firstProduct.coveredPincodes || !Array.isArray(firstProduct.coveredPincodes)) {
         return `Products from ${firstProduct.sellerName} don't have delivery information.`;
       }
       
-      // Check if customer pincode is covered
       if (!firstProduct.coveredPincodes.includes(user.pincode!)) {
         return `Delivery not available to PIN code ${user.pincode} for products from ${firstProduct.sellerName}`;
       }
@@ -82,109 +82,84 @@ const Cart: React.FC = () => {
     setError('');
     setShowProgress(true);
 
-    // Wait for progress animation to complete
     setTimeout(async () => {
       setLoading(true);
       
       try {
-      // Group items by seller
-      const sellerGroups = cartItems.reduce((groups, item) => {
-        const sellerId = item.product.sellerId;
-        if (!groups[sellerId]) {
-          groups[sellerId] = [];
+        const sellerGroups = cartItems.reduce((groups, item) => {
+          const sellerId = item.product.sellerId;
+          if (!groups[sellerId]) {
+            groups[sellerId] = [];
+          }
+          groups[sellerId].push(item);
+          return groups;
+        }, {} as Record<string, typeof cartItems>);
+
+        const orderPromises = Object.entries(sellerGroups).map(async ([sellerId, items]) => {
+          const sellerProduct = items[0].product;
+          const orderId = generateUniqueOrderId(user.pincode!);
+          
+          const orderData = {
+            orderId,
+            customerName: user.name,
+            customerPhone: user.phone,
+            customerAddress: user.address,
+            customerPincode: user.pincode,
+            sellerId,
+            sellerName: sellerProduct.sellerName,
+            sellerShopName: sellerProduct.sellerName,
+            sellerAddress: sellerProduct.sellerAddress || '',
+            sellerPincode: sellerProduct.sellerPincode || '',
+            items: items.map(item => ({
+              productId: item.productId,
+              productName: item.product.name,
+              price: item.product.price,
+              quantity: item.quantity,
+              unit: item.product.unit
+            })),
+            totalAmount: items.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+            status: ORDER_STATUSES.RECEIVED,
+            paymentMethod: 'cod',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            qrCode: generateOrderQR(orderId)
+          };
+
+          const orderRef = await addDoc(collection(db, 'orders'), orderData);
+          const stockReduced = await reduceStockForOrder(items, orderId);
+          
+          if (!stockReduced) {
+            console.warn(`Failed to reduce stock for order ${orderId}`);
+          }
+          
+          return { ref: orderRef, data: orderData };
+        });
+
+        const orderResults = await Promise.all(orderPromises);
+        
+        if (orderResults.length > 0) {
+          setOrderData(orderResults[0].data);
         }
-        groups[sellerId].push(item);
-        return groups;
-      }, {} as Record<string, typeof cartItems>);
-
-      // Create separate orders for each seller and reduce stock
-      const orderPromises = Object.entries(sellerGroups).map(async ([sellerId, items]) => {
-        const sellerProduct = items[0].product;
-        const orderId = generateUniqueOrderId(user.pincode!);
         
-        const orderData = {
-          orderId,
-          customerName: user.name,
-          customerPhone: user.phone,
-          customerAddress: user.address,
-          customerPincode: user.pincode,
-          sellerId,
-          sellerName: sellerProduct.sellerName,
-          sellerShopName: sellerProduct.sellerName,
-          sellerAddress: sellerProduct.sellerAddress || '',
-          sellerPincode: sellerProduct.sellerPincode || '',
-          items: items.map(item => ({
-            productId: item.productId,
-            productName: item.product.name,
-            price: item.product.price,
-            quantity: item.quantity,
-            unit: item.product.unit
-          })),
-          totalAmount: items.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
-          status: ORDER_STATUSES.RECEIVED,
-          paymentMethod: 'cod',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          qrCode: generateOrderQR(orderId) // Generate QR code for the order
-        };
-
-        // Create order and reduce stock atomically
-        const orderRef = await addDoc(collection(db, 'orders'), orderData);
-        
-        // Reduce stock for this order's items
-        const stockReduced = await reduceStockForOrder(items, orderId);
-        if (!stockReduced) {
-          console.warn(`Failed to reduce stock for order ${orderId}`);
-        }
-        
-        return orderRef;
-      });
-
-      const orderRefs = await Promise.all(orderPromises);
-      
-      // Get the first order for receipt display
-      if (orderRefs.length > 0) {
-        const firstOrderRef = orderRefs[0];
-        const firstOrderData = sellerGroups[Object.keys(sellerGroups)[0]];
-        const orderId = generateUniqueOrderId(user.pincode!);
-        
-        const receiptOrder = {
-          id: firstOrderRef.id,
-          orderId,
-          customerName: user.name,
-          customerPhone: user.phone,
-          customerAddress: user.address,
-          customerPincode: user.pincode,
-          items: firstOrderData.map(item => ({
-            productId: item.productId,
-            productName: item.product.name,
-            price: item.product.price,
-            quantity: item.quantity,
-            unit: item.product.unit
-          })),
-          totalAmount: firstOrderData.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
-          status: ORDER_STATUSES.RECEIVED,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-        
-        setShowReceipt(receiptOrder);
-      }
-      
-      clearCart();
-      } catch (error) {
-      console.error('Error placing orders:', error);
-      setError('Failed to place orders. Please try again.');
-      } finally {
-      setLoading(false);
+        clearCart();
         setShowProgress(false);
+        setShowSuccess(true);
+        
+      } catch (error) {
+        console.error('Error placing orders:', error);
+        setError('Failed to place orders. Please try again.');
+        setShowProgress(false);
+      } finally {
+        setLoading(false);
       }
-    }, 5000); // 5 second delay for progress animation
+    }, 3000);
   };
 
-  const handleReceiptComplete = () => {
-    setShowReceipt(null);
-    navigate('/track');
+  const handleCancelOrder = () => {
+    setShowSuccess(false);
+    setCancelTimer(5);
+    // Here you would implement order cancellation logic
+    navigate('/orders');
   };
 
   // Show order progress
@@ -192,37 +167,42 @@ const Cart: React.FC = () => {
     return <OrderProgress onComplete={() => {}} />;
   }
 
-  // Show receipt
-  if (showReceipt) {
+  // Show success screen
+  if (showSuccess) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-green-600 mb-2">Order Placed Successfully!</h1>
-            <p className="text-gray-600">Your order has been confirmed and is being processed.</p>
+      <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+            <CheckCircle className="w-12 h-12 text-green-600" />
           </div>
           
-          <OrderReceipt 
-            order={showReceipt} 
-            onDownload={() => {
-              // Auto-download logic is handled in OrderReceipt component
-            }}
-          />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Order Placed Successfully!</h1>
+          <p className="text-gray-600 mb-6">Your order has been confirmed and is being processed.</p>
           
-          <div className="text-center mt-6">
+          {orderData && (
+            <div className="bg-gray-50 rounded-xl p-4 mb-6">
+              <p className="text-sm text-gray-600">Order ID</p>
+              <p className="font-mono font-bold text-lg">{orderData.orderId}</p>
+            </div>
+          )}
+          
+          <div className="space-y-3">
             <button
-              onClick={handleReceiptComplete}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+              onClick={handleCancelOrder}
+              className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
             >
-              Track Your Order
+              Cancel Order
             </button>
+            
+            <p className="text-sm text-gray-500">
+              Redirecting to orders in {cancelTimer} seconds...
+            </p>
           </div>
         </div>
       </div>
     );
   }
 
-  // Show loading state while cart is initializing
   if (!isInitialized) {
     return (
       <div className="min-h-screen bg-gray-50 py-12">
@@ -241,13 +221,15 @@ const Cart: React.FC = () => {
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-16">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ArrowLeft className="w-12 h-12 text-gray-400" />
+            </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
             <p className="text-gray-600 mb-8">Add some products to get started!</p>
             <Link
               to="/"
               className="inline-flex items-center bg-green-600 text-white px-8 py-4 rounded-xl hover:bg-green-700 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
-              <ArrowLeft className="w-5 h-5 mr-2" />
               Continue Shopping
             </Link>
           </div>
@@ -255,6 +237,9 @@ const Cart: React.FC = () => {
       </div>
     );
   }
+
+  const originalTotal = cartItems.reduce((sum, item) => sum + (item.product.originalPrice || item.product.price) * item.quantity, 0);
+  const discount = originalTotal - totalAmount;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -272,99 +257,130 @@ const Cart: React.FC = () => {
           </Link>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
-          <div className="p-8">
+          <div className="lg:col-span-2 space-y-4">
             {cartItems.map(item => {
-              // Defensive check for each item
               if (!item || !item.product) {
-                console.warn('Invalid cart item:', item);
                 return null;
               }
 
               return (
-                <div key={item.productId} className="flex items-center py-6 border-b border-gray-200 last:border-b-0">
-                  <div className="w-20 h-20 bg-gray-200 rounded-xl flex-shrink-0">
-                    {item.product.images && item.product.images.length > 0 && item.product.images[0] ? (
-                      <img
-                        src={item.product.images[0]}
-                        alt={item.product.name}
-                        className="w-full h-full object-cover rounded-xl"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-green-100 rounded-xl flex items-center justify-center">
-                        <span className="text-green-600 text-xs">No Image</span>
+                <div key={item.productId} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-20 h-20 bg-gray-100 rounded-xl flex-shrink-0 overflow-hidden">
+                      {item.product.images && item.product.images.length > 0 && item.product.images[0] ? (
+                        <img
+                          src={item.product.images[0]}
+                          alt={item.product.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-400 text-xs">No Image</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">{item.product.name || 'Unknown Product'}</h3>
+                      <p className="text-sm text-gray-600 mb-2">By {item.product.sellerName || 'Unknown Seller'}</p>
+                      <p className="text-sm text-gray-500">{item.product.unit || 'unit'}</p>
+                      
+                      <div className="flex items-center justify-between mt-4">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-lg font-bold text-gray-900">
+                            ₹{((item.product.price || 0) * item.quantity).toFixed(0)}
+                          </span>
+                          {item.product.originalPrice && item.product.originalPrice > item.product.price && (
+                            <span className="text-sm text-gray-400 line-through">
+                              ₹{(item.product.originalPrice * item.quantity).toFixed(0)}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center space-x-3">
+                          <QuantitySelector
+                            quantity={item.quantity}
+                            onQuantityChange={(newQuantity) => updateQuantity(item.productId, newQuantity)}
+                            maxQuantity={item.product.stock}
+                            disabled={!isProductInStock(item.productId, 1)}
+                            size="sm"
+                          />
+                          
+                          <button
+                            onClick={() => removeFromCart(item.productId)}
+                            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
-                    )}
-                  </div>
-
-                  <div className="ml-6 flex-grow">
-                    <h3 className="text-lg font-bold text-gray-900">{item.product.name || 'Unknown Product'}</h3>
-                    <p className="text-sm text-gray-600">By {item.product.sellerName || 'Unknown Seller'}</p>
-                    <p className="text-lg font-bold text-green-600">
-                      ₹{item.product.price || 0}/{item.product.unit || 'unit'}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center space-x-4">
-                    <QuantitySelector
-                      quantity={item.quantity}
-                      onQuantityChange={(newQuantity) => updateQuantity(item.productId, newQuantity)}
-                      maxQuantity={item.product.stock}
-                      disabled={!isProductInStock(item.productId, 1)}
-                      size="md"
-                    />
-                  </div>
-
-                  <div className="ml-6 text-right">
-                    <p className="text-xl font-bold text-gray-900">₹{((item.product.price || 0) * item.quantity).toFixed(2)}</p>
-                    <button
-                      onClick={() => removeFromCart(item.productId)}
-                      className="text-red-600 hover:text-red-700 mt-2 p-2 hover:bg-red-50 rounded-lg transition-all duration-200"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Checkout Section */}
-          <div className="border-t border-gray-200 p-8">
-            <div className="flex justify-between items-center mb-8">
-              <span className="text-2xl font-bold text-gray-900">Total: ₹{totalAmount.toFixed(2)}</span>
-            </div>
-
-            {/* Delivery Details */}
-            <div className="border-t pt-8 mb-8">
-              <h3 className="text-xl font-bold mb-4">Delivery Details</h3>
-              <div className="bg-gray-50 rounded-xl p-6">
-                <p className="font-bold text-gray-900">{user?.name}</p>
-                <p className="text-gray-600">{user?.phone}</p>
-                <p className="text-gray-600">{user?.address}</p>
-                <p className="text-gray-600 font-medium">PIN: {user?.pincode}</p>
+          {/* Order Summary */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-24">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h3>
+              
+              {/* Price Breakdown */}
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between text-gray-600">
+                  <span>Original Total</span>
+                  <span>₹{originalTotal.toFixed(0)}</span>
+                </div>
+                
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount</span>
+                    <span>-₹{discount.toFixed(0)}</span>
+                  </div>
+                )}
+                
+                <div className="border-t pt-3">
+                  <div className="flex justify-between text-xl font-bold text-gray-900">
+                    <span>Final Total</span>
+                    <span>₹{totalAmount.toFixed(0)}</span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-4 rounded-xl mb-6">
-                {error}
+              {/* Delivery Details */}
+              <div className="border-t pt-6 mb-6">
+                <h4 className="font-semibold text-gray-900 mb-3">Delivery Details</h4>
+                <div className="bg-gray-50 rounded-xl p-4 text-sm">
+                  <p className="font-semibold text-gray-900">{user?.name}</p>
+                  <p className="text-gray-600">{user?.phone}</p>
+                  <p className="text-gray-600">{user?.address}</p>
+                  <p className="text-gray-600 font-medium">PIN: {user?.pincode}</p>
+                </div>
               </div>
-            )}
 
-            <div className="flex justify-between items-center">
-              <p className="text-lg text-gray-600 font-medium">Payment Method: Cash on Delivery</p>
-              <button
-                onClick={handlePlaceOrder}
-                disabled={loading}
-                className="bg-green-600 text-white px-10 py-4 rounded-xl hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl"
-              >
-                {loading ? 'Placing Order...' : 'Place Order'}
-              </button>
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-6 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600 text-center">Payment Method: Cash on Delivery</p>
+                
+                <button
+                  onClick={handlePlaceOrder}
+                  disabled={loading}
+                  className="w-full bg-green-600 text-white py-4 rounded-xl hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+                >
+                  {loading ? 'Placing Order...' : 'Confirm Order'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

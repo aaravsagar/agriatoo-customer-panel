@@ -7,6 +7,7 @@ import Footer from './components/Layout/Footer';
 import MobileBottomNav from './components/Layout/MobileBottomNav';
 import LoadingSpinner from './components/UI/LoadingSpinner';
 import HomePage from './components/Customer/HomePage';
+import ProductDetailsPage from './components/Customer/ProductDetailsPage';
 import Cart from './components/Customer/Cart';
 import MyOrders from './components/Customer/MyOrders';
 import Profile from './components/Customer/Profile';
@@ -33,6 +34,7 @@ function AppContent() {
       <main className="flex-grow pb-16 md:pb-0">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/product/:productId" element={<ProductDetailsPage />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/orders" element={<MyOrders />} />
           <Route path="/profile" element={<Profile />} />
