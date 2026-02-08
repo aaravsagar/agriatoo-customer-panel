@@ -82,6 +82,7 @@ const Cart: React.FC = () => {
     setError('');
     setShowProgress(true);
 
+    // Start the actual order processing after a delay to show animation
     setTimeout(async () => {
       setLoading(true);
       
@@ -152,19 +153,27 @@ const Cart: React.FC = () => {
       } finally {
         setLoading(false);
       }
-    }, 3000);
+    }, 5000); // Increased delay to allow for better animation experience
+  };
+
+  const handleCancelOrder = () => {
+    setShowProgress(false);
+    setShowSuccess(false);
+    setCancelTimer(5);
+    setError('Order was cancelled');
+    // Clear any ongoing processes
+    setLoading(false);
   };
 
   const handleCancelOrder = () => {
     setShowSuccess(false);
     setCancelTimer(5);
-    // Here you would implement order cancellation logic
     navigate('/orders');
   };
 
   // Show order progress
   if (showProgress) {
-    return <OrderProgress onComplete={() => {}} />;
+    return <OrderProgress onComplete={() => {}} onCancel={handleCancelOrder} />;
   }
 
   // Show success screen
@@ -186,18 +195,9 @@ const Cart: React.FC = () => {
             </div>
           )}
           
-          <div className="space-y-3">
-            <button
-              onClick={handleCancelOrder}
-              className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
-            >
-              Cancel Order
-            </button>
-            
-            <p className="text-sm text-gray-500">
-              Redirecting to orders in {cancelTimer} seconds...
-            </p>
-          </div>
+          <p className="text-sm text-gray-500">
+            Redirecting to orders in {cancelTimer} seconds...
+          </p>
         </div>
       </div>
     );
