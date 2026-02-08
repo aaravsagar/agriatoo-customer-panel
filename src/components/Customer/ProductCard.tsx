@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ImageOff } from 'lucide-react';
 import { Product } from '../../types';
-import { useCart } from '../../hooks/useCart';
+import { useCart } from '../../context/CartContext';
 import { useStockManager } from '../../hooks/useStockManager';
 import QuantitySelector from '../UI/QuantitySelector';
 

@@ -1,10 +1,29 @@
-import { useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CartItem, Product } from '../types';
-import { useStockManager } from './useStockManager';
+import { useStockManager } from '../hooks/useStockManager';
 
 const CART_STORAGE_KEY = 'agriatoo_cart';
 
-export const useCart = () => {
+interface CartContextType {
+  cartItems: CartItem[];
+  addToCart: (product: Product, quantity?: number) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+  removeFromCart: (productId: string) => void;
+  clearCart: () => void;
+  totalAmount: number;
+  totalItems: number;
+  isInCart: (productId: string) => boolean;
+  getCartItemQuantity: (productId: string) => number;
+  isInitialized: boolean;
+}
+
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
+interface CartProviderProps {
+  children: ReactNode;
+}
+
+export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const { isProductInStock } = useStockManager();
@@ -31,7 +50,6 @@ export const useCart = () => {
         });
         
         setCartItems(validCart);
-      } else {
       }
     } catch (error) {
       console.error('❌ Error loading cart from localStorage:', error);
@@ -49,18 +67,12 @@ export const useCart = () => {
 
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
-      
-      // Dispatch custom event for other components to listen
-      window.dispatchEvent(new CustomEvent('cartUpdated', { 
-        detail: { itemCount: cartItems.length } 
-      }));
     } catch (error) {
       console.error('❌ Error saving cart to localStorage:', error);
     }
   }, [cartItems, isInitialized]);
 
   const addToCart = (product: Product, quantity: number = 1) => {
-    
     if (!product || !product.id) {
       console.error('❌ Invalid product:', product);
       return;
@@ -85,12 +97,11 @@ export const useCart = () => {
         }
         
         const newQuantity = Math.min(requestedQuantity, product.stock);
-        const updated = prev.map(item =>
+        return prev.map(item =>
           item.productId === product.id
             ? { ...item, quantity: newQuantity }
             : item
         );
-        return updated;
       }
       
       // Add new item to cart
@@ -99,13 +110,11 @@ export const useCart = () => {
         product: product, 
         quantity: Math.min(quantity, product.stock) 
       };
-      const updated = [...prev, newItem];
-      return updated;
+      return [...prev, newItem];
     });
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
-    
     if (quantity <= 0) {
       removeFromCart(productId);
       return;
@@ -129,10 +138,7 @@ export const useCart = () => {
   };
 
   const removeFromCart = (productId: string) => {
-    setCartItems(prev => {
-      const updated = prev.filter(item => item.productId !== productId);
-      return updated;
-    });
+    setCartItems(prev => prev.filter(item => item.productId !== productId));
   };
 
   const clearCart = () => {
@@ -156,8 +162,7 @@ export const useCart = () => {
     return item ? item.quantity : 0;
   };
 
-
-  return {
+  const value: CartContextType = {
     cartItems,
     addToCart,
     updateQuantity,
@@ -169,4 +174,18 @@ export const useCart = () => {
     getCartItemQuantity,
     isInitialized
   };
+
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+    </CartContext.Provider>
+  );
+};
+
+export const useCart = (): CartContextType => {
+  const context = useContext(CartContext);
+  if (context === undefined) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
 };

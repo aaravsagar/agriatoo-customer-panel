@@ -6,7 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { Product } from '../../types';
 import { PRODUCT_CATEGORIES } from '../../config/constants';
 import { Search, ShoppingCart, Truck, Shield, Users } from 'lucide-react';
-import { useCart } from '../../hooks/useCart';
+import { useCart } from '../../context/CartContext';
 import { useStockManager } from '../../hooks/useStockManager';
 import ProductCard from '../../components/Customer/ProductCard';
 

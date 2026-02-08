@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, ShoppingCart, Package, User } from 'lucide-react';
-import { useCart } from '../../hooks/useCart';
+import { useCart } from '../../context/CartContext';
 
 const MobileBottomNav: React.FC = () => {
   const location = useLocation();

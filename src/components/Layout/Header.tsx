@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, User, Search, Package } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { useCart } from '../../hooks/useCart';
+import { useCart } from '../../context/CartContext';
 import Logo from '../UI/Logo';
 
 const Header: React.FC = () => {

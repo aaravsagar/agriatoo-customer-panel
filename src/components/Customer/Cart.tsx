@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../hooks/useAuth';
-import { useCart } from '../../hooks/useCart';
+import { useCart } from '../../context/CartContext';
 import { useStockManager } from '../../hooks/useStockManager';
 import { generateUniqueOrderId, generateOrderQR } from '../../utils/qrUtils';
 import { Trash2, ArrowLeft, CheckCircle } from 'lucide-react';

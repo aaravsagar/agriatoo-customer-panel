@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { Product } from '../../types';
-import { useCart } from '../../hooks/useCart';
+import { useCart } from '../../context/CartContext';
 import { useStockManager } from '../../hooks/useStockManager';
 import { ArrowLeft, ImageOff, ChevronDown, ChevronUp } from 'lucide-react';
 import QuantitySelector from '../UI/QuantitySelector';
